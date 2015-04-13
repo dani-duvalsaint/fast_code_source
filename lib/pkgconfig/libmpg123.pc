@@ -1,0 +1,11 @@
+prefix=/afs/andrew.cmu.edu/usr4/apenugon/private/15418/finalproject
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: libmpg123
+Description: An optimised MPEG Audio decoder
+Requires: 
+Version: 1.22.1
+Libs: -L${libdir} -lmpg123 
+Cflags: -I${includedir} 
