@@ -8,5 +8,5 @@ CXXFLAGS = -g $(INCLUDES)
 #Suffix Rules
 .SUFFIXES: .cc
 #Files 
-all : 
+fft_test : 
 	$(CXX) fft_test_real.cpp kiss_fft130/kiss_fft.c kiss_fft130/tools/kiss_fftr.c $(CXXFLAGS) -o fft_test_real
