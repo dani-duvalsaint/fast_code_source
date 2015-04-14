@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "kiss_fftr.h"
+#include <tools/kiss_fftr.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979324
