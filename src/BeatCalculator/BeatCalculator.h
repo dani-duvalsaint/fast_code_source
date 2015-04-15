@@ -11,6 +11,7 @@ class BeatCalculator {
     public:
         BeatCalculator();
         int detect_beat(char* s);
+        ~BeatCalculator();
 };
 
 #endif

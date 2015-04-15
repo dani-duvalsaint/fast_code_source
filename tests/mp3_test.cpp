@@ -72,6 +72,8 @@ int* readMp3(std::string s) {
     return NULL;
   }
 
+  printf("rate %lu, channels %i, encoding %i\n", rate, channels, encoding);
+
   if (encoding != MPG123_ENC_SIGNED_16 && encoding != MPG123_ENC_FLOAT_32) {
     cleanup(mh);
     fprintf(stderr, "Bad encodingL 0x%x!\n", encoding);

@@ -14,7 +14,7 @@ SRCDIR = $(FINAL_PROJECT_PATH)/src
 all : fft_test_real fft_test_complex mp3_test handler
 
 handler : $(SRCDIR)/BeatCalculator/BeatCalculator.h $(SRCDIR)/BeatCalculator/BeatCalculator.cpp $(SRCDIR)/Handler/main.cpp
-	$(CXX) $(SRCDIR)/Handler/main.cpp $(SRCDIR)/BeatCalculator/BeatCalculator.cpp kiss_fft130/kiss_fft.c kiss_fft130/tools/kiss_fftr.c $(CXXFLAGS) -o calculatebeat
+	$(CXX) $(SRCDIR)/Handler/main.cpp $(SRCDIR)/BeatCalculator/BeatCalculator.cpp kiss_fft130/kiss_fft.c kiss_fft130/tools/kiss_fftr.c $(CXXFLAGS) $(LIBFLAGS) -lmpg123 -o calculatebeat
 
 fft_test_real : fft_test_real.cpp
 	$(CXX) fft_test_real.cpp kiss_fft130/kiss_fft.c kiss_fft130/tools/kiss_fftr.c $(CXXFLAGS) -o fft_test_real
