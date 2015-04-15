@@ -1,15 +1,21 @@
 BASEDIR = /afs/andrew.cmu.edu/usr4/apenugon/private/15418/finalproject
 
-INCLUDES = -I$(FINAL_PROJECT_PATH)/include -I$(FINAL_PROJECT_PATH)/lib -I$(FINAL_PROJECT_PATH)/kiss_fft130 -I$(FINAL_PROJECT_PATH)/kiss_fft130/tools
-
+INCLUDES = -I$(FINAL_PROJECT_PATH)/include -I$(FINAL_PROJECT_PATH)/lib -I$(FINAL_PROJECT_PATH)/kiss_fft130 -I$(FINAL_PROJECT_PATH)/kiss_fft130/tools -I$(FINAL_PROJECT_PATH)/src/BeatCalculator
 CXX = g++
 CXXFLAGS = -g $(INCLUDES)
 LIBFLAGS = -L$(FINAL_PROJECT_PATH)/lib
+SRCDIR = $(FINAL_PROJECT_PATH)/src
 
 #Suffix Rules
 .SUFFIXES: .cc
 
 #Files 
+
+all : fft_test_real fft_test_complex mp3_test handler
+
+handler : $(SRCDIR)/BeatCalculator/BeatCalculator.h $(SRCDIR)/BeatCalculator/BeatCalculator.cpp $(SRCDIR)/Handler/main.cpp
+	$(CXX) $(SRCDIR)/Handler/main.cpp $(SRCDIR)/BeatCalculator/BeatCalculator.cpp kiss_fft130/kiss_fft.c kiss_fft130/tools/kiss_fftr.c $(CXXFLAGS) -o calculatebeat
+
 fft_test_real : fft_test_real.cpp
 	$(CXX) fft_test_real.cpp kiss_fft130/kiss_fft.c kiss_fft130/tools/kiss_fftr.c $(CXXFLAGS) -o fft_test_real
 
