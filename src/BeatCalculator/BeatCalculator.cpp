@@ -109,6 +109,8 @@ int BeatCalculator::detect_beat(char* s) {
     differentiated_sample[sample_size - 1] = sample[sample_size-1];
     // Step 3: Compute the FFT
 
+
+    // Step 4: Generate Sub-band array values
     free(sample);
 
     return 0;
