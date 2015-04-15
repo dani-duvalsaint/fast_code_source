@@ -25,7 +25,7 @@ void cleanup(mpg123_handle* mh) {
  *          a - holds left ear data
  *          b - holds right ear data
  */
-int readMP3(char* song, int* sample) {
+int readMP3(char* song, unsigned char* sample) {
     mpg123_handle *mh = NULL;
     int err = MPG123_OK;
     int channels = 0, encoding = 0;
@@ -73,7 +73,7 @@ int readMP3(char* song, int* sample) {
     // Calculate sample indices
     int start = buffer_size/2 - sample_size/2;
 
-    memcpy(sample, buffer + start, sample_size);
+    memcpy(sample, buffer + start, sample_size * sizeof(unsigned char));
 
     free(buffer);
 
@@ -93,8 +93,22 @@ int BeatCalculator::detect_beat(char* s) {
     int sample_size = 2.2 * 2 * max_freq; //This is the sample length of our 5 second snapshot
 
     // Load mp3
-    int* sample = (int*)malloc(sizeof(int) * sample_size);
+    unsigned char* sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
     readMP3(s, sample);
+    for (int i = 0; i < sample_size; i++) {
+        printf("Element %i: %i\n", i, sample[i]);
+    }
+
+    // Step 2: Differentiate
+    unsigned char* differentiated_sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
+    int Fs = 44100;
+    differentiated_sample[0] = sample[0];
+    for (int i = 1; i < sample_size - 1; i++) {
+        differentiated_sample[i] = Fs * (sample[i+1]-sample[i-1])/2;
+    }
+    differentiated_sample[sample_size - 1] = sample[sample_size-1];
+    // Step 3: Compute the FFT
+
     free(sample);
 
     return 0;
