@@ -38,7 +38,7 @@ int readMP3(char* song, int* a, int* b) {
     }
 
     mpg123_param(mh, MPG123_ADD_FLAGS, MPG123_FORCE_FLOAT, 0);
-    if (mpg123_open(mh, "headhunterz.wav") != MPG123_OK ||
+    if (mpg123_open(mh, song) != MPG123_OK ||
             mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK) {
         fprintf(stderr, "Trouble with mpg123: %s\n", mpg123_strerror(mh));
         cleanup(mh);

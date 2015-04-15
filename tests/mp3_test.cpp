@@ -65,14 +65,14 @@ int* readMp3(std::string s) {
   }
 
   mpg123_param(mh, MPG123_ADD_FLAGS, MPG123_FORCE_FLOAT, 0.);
-  if (mpg123_open(mh, "headhunterz.wav") != MPG123_OK ||
+  if (mpg123_open(mh, "songs/headhunterz.wav") != MPG123_OK ||
       mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK) {
     fprintf(stderr, "Trouble with mpg123: %s\n", mpg123_strerror(mh));
     cleanup(mh);
     return NULL;
   }
 
-  printf("rate %lu, channels %i, encoding %i\n", rate, channels, encoding);
+
 
   if (encoding != MPG123_ENC_SIGNED_16 && encoding != MPG123_ENC_FLOAT_32) {
     cleanup(mh);
@@ -89,7 +89,7 @@ int* readMp3(std::string s) {
   int spf = mpg123_spf(mh);
   double tpf = mpg123_tpf(mh);
   printf("Number of samples: %i, spf: %i, tpf: %f, Length: %f\n", samples, spf, tpf, samples/spf * tpf);
-
+  printf("rate %lu, channels %i, encoding %i\n", rate, channels, encoding);
   buffer_size = mpg123_outblock(mh);
   buffer = (unsigned char*)malloc(buffer_size * sizeof(char));
 

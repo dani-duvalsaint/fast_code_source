@@ -1,4 +1,4 @@
-BASEDIR = /afs/andrew.cmu.edu/usr4/apenugon/private/15418/finalproject
+FINAL_PROJECT_PATH = $(shell pwd)
 
 INCLUDES = -I$(FINAL_PROJECT_PATH)/include -I$(FINAL_PROJECT_PATH)/lib -I$(FINAL_PROJECT_PATH)/kiss_fft130 -I$(FINAL_PROJECT_PATH)/kiss_fft130/tools -I$(FINAL_PROJECT_PATH)/src/BeatCalculator
 CXX = g++
