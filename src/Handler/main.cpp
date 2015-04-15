@@ -4,7 +4,7 @@
 
 int main() {
   BeatCalculator *calculator = new BeatCalculator();
-  calculator->detect_beat("");
+  calculator->detect_beat("songs/headhunterz.mp3");
   delete calculator;
   printf("Done calling all Detector Functions\n");
   return 0;
