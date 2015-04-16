@@ -104,11 +104,11 @@ void fftArray(unsigned char* sample, int size, kiss_fft_cpx* out) {
 }
 
 int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
-    unsigned char AmpMax = 65535;
-    int E[15];
+    unsigned char AmpMax = 255;
+    int E[30];
     // Iterate through all possible BPMs
-    for (int i = 0; i < 15; i++) {
-        int BPM = 60 + i * 10;
+    for (int i = 0; i < 30; i++) {
+        int BPM = 60 + i * 5;
         int Ti = 60 * 44100/BPM;
         unsigned char l[sample_size];
         for (int k = 0; k < sample_size; k+=2) {
@@ -131,13 +131,15 @@ int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
     }
 
     //Calculate max of E[k]
-    int max = 0;
-    for (int i = 0; i < 15; i++) {
+    int max = -1;
+    int index = -1;
+    for (int i = 0; i < 30; i++) {
         if (E[i] > max) {
             max = E[i];
+            index = i;
         }
     }
-    return max;
+    return 60 + index * 5;
 }
 
 
@@ -159,17 +161,17 @@ int BeatCalculator::detect_beat(char* s) {
     }
 
     // Step 2: Differentiate
-    unsigned char* differentiated_sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
+   /* unsigned char* differentiated_sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
     int Fs = 44100;
     differentiated_sample[0] = sample[0];
     for (int i = 1; i < sample_size - 1; i++) {
         differentiated_sample[i] = Fs * (sample[i+1]-sample[i-1])/2; //TODO: Look here if this is messing up
     }
     differentiated_sample[sample_size - 1] = sample[sample_size-1];
-
+*/
     // Step 3: Compute the FFT
     kiss_fft_cpx out[sample_size/2];
-    fftArray(differentiated_sample, sample_size, out);
+    fftArray(sample, sample_size, out);
 
     for (int i = 0; i < sample_size / 2; i++)
       printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);
