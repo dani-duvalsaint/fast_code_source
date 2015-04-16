@@ -108,7 +108,17 @@ int BeatCalculator::detect_beat(char* s) {
     }
     differentiated_sample[sample_size - 1] = sample[sample_size-1];
     // Step 3: Compute the FFT
+    kiss_fftr_cfg kiss_fft_buf = kiss_fftr_alloc(sample_size, 0, NULL, NULL);
+    int out_size = sample_size/2 + 1;
+    kiss_fft_scalar* fft_in = (kiss_fft_scalar*)malloc(sizeof(kiss_fft_scalar)*sample_size);
+    kiss_fft_cpx* fft_out = (kiss_fft_cpx*)malloc(sizeof(kiss_fft_cpx)*out_size);
 
+    // Copy data into kiss_fft array
+    for (int i = 0; i < sample_size; i++) {
+        fft_in[i] = differentiated_sample[i];
+    }
+
+    kiss_fftr(kiss_fft_buf, fft_in, fft_out);
 
     // Step 4: Generate Sub-band array values
     free(sample);
