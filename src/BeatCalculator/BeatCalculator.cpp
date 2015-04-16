@@ -95,13 +95,52 @@ void fftArray(unsigned char* sample, int size, kiss_fft_cpx* out) {
   //set real components to one side of stereo input, complex to other
   for(i=0; i < size; i+=2) {
     in[i/2].r = sample[i];
-    in[i/2].r = sample[i+1];
+    in[i/2].i = sample[i+1];
   }
 
   kiss_fft(cfg, in, out);
   free(cfg);
 
 }
+
+int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
+    unsigned char AmpMax = 65535;
+    int E[15];
+    // Iterate through all possible BPMs
+    for (int i = 0; i < 15; i++) {
+        int BPM = 60 + i * 10;
+        int Ti = 60 * 44100/BPM;
+        unsigned char l[sample_size];
+        for (int k = 0; k < sample_size; k+=2) {
+            if ((k % Ti) == 0) {
+                l[k] = AmpMax;
+                l[k+1] = AmpMax;
+            }
+            else {
+                l[k] = 0;
+                l[k+1] = 0;
+            }
+        }
+        kiss_fft_cpx out[sample_size/2];
+
+        fftArray(l, sample_size, out);
+        E[i] = 0;
+        for (int k = 0; k < sample_size/2; k++) {
+            E[i] += (fft_array[k].r * out[k].r - fft_array[k].i * out[k].i);
+        }
+    }
+
+    //Calculate max of E[k]
+    int max = 0;
+    for (int i = 0; i < 15; i++) {
+        if (E[i] > max) {
+            max = E[i];
+        }
+    }
+    return max;
+}
+
+
 /* detect_beat
  * Returns the BPM of the given mp3 file
  * @Params: s - the path to the desired mp3
@@ -111,7 +150,7 @@ int BeatCalculator::detect_beat(char* s) {
     // Assume the max frequency is 4096
     int max_freq = 4096;
     int sample_size = 2.2 * 2 * max_freq; //This is the sample length of our 5 second snapshot
-    
+
     // Load mp3
     unsigned char* sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
     readMP3(s, sample);
@@ -127,13 +166,19 @@ int BeatCalculator::detect_beat(char* s) {
         differentiated_sample[i] = Fs * (sample[i+1]-sample[i-1])/2; //TODO: Look here if this is messing up
     }
     differentiated_sample[sample_size - 1] = sample[sample_size-1];
-    
+
     // Step 3: Compute the FFT
     kiss_fft_cpx out[sample_size/2];
     fftArray(differentiated_sample, sample_size, out);
 
     for (int i = 0; i < sample_size / 2; i++)
       printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);
+
+    printf("Combfilter performing...\n");
+
+    int BPM = combfilter(out, sample_size / 2, sample_size);
+
+    printf("Final BPM: %i\n", BPM);
 
     // Step 4: Generate Sub-band array values
     free(sample);
