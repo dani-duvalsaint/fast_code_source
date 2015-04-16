@@ -185,7 +185,7 @@ int BeatCalculator::detect_beat(char* s) {
     // Step 4: Generate Sub-band array values
     free(sample);
 
-    return 0;
+    return BPM;
 }
 
 // Replicates the "control" part of the Matlab code
