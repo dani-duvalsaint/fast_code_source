@@ -82,6 +82,26 @@ int readMP3(char* song, unsigned char* sample) {
     return 0;
 }
 
+void fftArray(unsigned char* sample, int size, kiss_fft_cpx* out) {
+  kiss_fft_cpx in[size/2];
+  kiss_fft_cfg cfg;
+  int i;
+
+  if ((cfg = kiss_fft_alloc(size/2, 0, NULL, NULL)) == NULL) {
+    printf("Not Enough Memory?!?");
+    exit(-1);
+  }
+
+  //set real components to one side of stereo input, complex to other
+  for(i=0; i < size; i+=2) {
+    in[i/2].r = sample[i];
+    in[i/2].r = sample[i+1];
+  }
+
+  kiss_fft(cfg, in, out);
+  free(cfg);
+
+}
 /* detect_beat
  * Returns the BPM of the given mp3 file
  * @Params: s - the path to the desired mp3
@@ -91,7 +111,7 @@ int BeatCalculator::detect_beat(char* s) {
     // Assume the max frequency is 4096
     int max_freq = 4096;
     int sample_size = 2.2 * 2 * max_freq; //This is the sample length of our 5 second snapshot
-
+    
     // Load mp3
     unsigned char* sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
     readMP3(s, sample);
@@ -104,11 +124,16 @@ int BeatCalculator::detect_beat(char* s) {
     int Fs = 44100;
     differentiated_sample[0] = sample[0];
     for (int i = 1; i < sample_size - 1; i++) {
-        differentiated_sample[i] = Fs * (sample[i+1]-sample[i-1])/2;
+        differentiated_sample[i] = Fs * (sample[i+1]-sample[i-1])/2; //TODO: Look here if this is messing up
     }
     differentiated_sample[sample_size - 1] = sample[sample_size-1];
+    
     // Step 3: Compute the FFT
+    kiss_fft_cpx out[sample_size/2];
+    fftArray(differentiated_sample, sample_size, out);
 
+    for (int i = 0; i < sample_size / 2; i++)
+      printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);
 
     // Step 4: Generate Sub-band array values
     free(sample);
