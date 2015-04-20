@@ -82,6 +82,24 @@ int readMP3(char* song, unsigned char* sample) {
     return 0;
 }
 
+void fftrArray(unsigned char* sample, int size, kiss_fft_cpx* out) {
+    kiss_fft_scalar in[size];
+    kiss_fftr_cfg cfg;
+
+    int i;
+
+    if ((cfg = kiss_fftr_alloc(size, 0, NULL, NULL)) == NULL) {
+        printf("Not enough memory to allocate fftr!\n");
+        exit(-1);
+    }
+
+    for (int i = 0; i < size; i++) {
+        in[i] = sample[i];
+    }
+    kiss_fftr(cfg, in, out);
+    free(cfg);
+}
+
 void fftArray(unsigned char* sample, int size, kiss_fft_cpx* out) {
   kiss_fft_cpx in[size/2];
   kiss_fft_cfg cfg;
@@ -153,7 +171,7 @@ int BeatCalculator::detect_beat(char* s) {
     // Step 1: Get a 5-second sample of our desired mp3
     // Assume the max frequency is 4096
     int max_freq = 4096;
-    int sample_size = 2.2 * 2 * max_freq; //This is the sample length of our 5 second snapshot
+    int sample_size = 2.2 * 4 * max_freq; //This is the sample length of our 5 second snapshot
 
     // Load mp3
     unsigned char* sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
@@ -163,14 +181,14 @@ int BeatCalculator::detect_beat(char* s) {
     }
 
     // Step 2: Differentiate
-   /* unsigned char* differentiated_sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
+    unsigned char* differentiated_sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
     int Fs = 44100;
     differentiated_sample[0] = sample[0];
     for (int i = 1; i < sample_size - 1; i++) {
         differentiated_sample[i] = Fs * (sample[i+1]-sample[i-1])/2; //TODO: Look here if this is messing up
     }
     differentiated_sample[sample_size - 1] = sample[sample_size-1];
-*/
+
     // Step 3: Compute the FFT
     kiss_fft_cpx out[sample_size/2];
     fftArray(sample, sample_size, out);
