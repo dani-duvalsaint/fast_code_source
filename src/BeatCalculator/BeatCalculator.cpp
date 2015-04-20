@@ -60,7 +60,7 @@ int readMP3(char* song, unsigned short* sample) {
     unsigned short* buffer = (unsigned short*)malloc(sizeof(unsigned short) * buffer_size);
     size_t done = 0;
 
-    if (mpg123_read(mh, buffer, buffer_size, &done) != MPG123_OK) {
+    if (mpg123_read(mh, (unsigned char*)buffer, buffer_size, &done) != MPG123_OK) {
         cleanup(mh);
         fprintf(stderr, "Read went wrong\n");
         return -1;
@@ -122,13 +122,13 @@ void fftArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
 }
 
 int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
-    unsigned char AmpMax = 255;
+    unsigned short AmpMax = 65535;
     int E[30];
     // Iterate through all possible BPMs
     for (int i = 0; i < 30; i++) {
         int BPM = 60 + i * 5;
         int Ti = 60 * 44100/BPM;
-        unsigned char l[sample_size];
+        unsigned short l[sample_size];
         for (int k = 0; k < sample_size; k+=2) {
             if ((k % Ti) == 0) {
                 l[k] = AmpMax;
@@ -171,7 +171,7 @@ int BeatCalculator::detect_beat(char* s) {
     // Step 1: Get a 5-second sample of our desired mp3
     // Assume the max frequency is 4096
     int max_freq = 4096;
-    int sample_size = 2.2 * 4 * max_freq; //This is the sample length of our 5 second snapshot
+    int sample_size = 2.2 * 2 * max_freq; //This is the sample length of our 5 second snapshot
 
     // Load mp3
     unsigned short* sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
@@ -191,7 +191,7 @@ int BeatCalculator::detect_beat(char* s) {
 
     // Step 3: Compute the FFT
     kiss_fft_cpx out[sample_size/2];
-    fftArray(sample, sample_size, out);
+    fftrArray(sample, sample_size, out);
 
     for (int i = 0; i < sample_size / 2; i++)
       printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);
