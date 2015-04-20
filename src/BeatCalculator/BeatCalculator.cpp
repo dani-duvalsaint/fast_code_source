@@ -25,7 +25,7 @@ void cleanup(mpg123_handle* mh) {
  *          a - holds left ear data
  *          b - holds right ear data
  */
-int readMP3(char* song, unsigned char* sample) {
+int readMP3(char* song, unsigned short* sample) {
     mpg123_handle *mh = NULL;
     int err = MPG123_OK;
     int channels = 0, encoding = 0;
@@ -57,7 +57,7 @@ int readMP3(char* song, unsigned char* sample) {
 
     //Read mp3
     size_t buffer_size = mpg123_length(mh);
-    unsigned char* buffer = (unsigned char*)malloc(sizeof(unsigned char) * buffer_size);
+    unsigned short* buffer = (unsigned short*)malloc(sizeof(unsigned short) * buffer_size);
     size_t done = 0;
 
     if (mpg123_read(mh, buffer, buffer_size, &done) != MPG123_OK) {
@@ -73,7 +73,7 @@ int readMP3(char* song, unsigned char* sample) {
     // Calculate sample indices
     int start = buffer_size/2 - sample_size/2;
 
-    memcpy(sample, buffer + start, sample_size * sizeof(unsigned char));
+    memcpy(sample, buffer + start, sample_size * sizeof(unsigned short));
 
     free(buffer);
 
@@ -82,7 +82,7 @@ int readMP3(char* song, unsigned char* sample) {
     return 0;
 }
 
-void fftrArray(unsigned char* sample, int size, kiss_fft_cpx* out) {
+void fftrArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
     kiss_fft_scalar in[size];
     kiss_fftr_cfg cfg;
 
@@ -100,7 +100,7 @@ void fftrArray(unsigned char* sample, int size, kiss_fft_cpx* out) {
     free(cfg);
 }
 
-void fftArray(unsigned char* sample, int size, kiss_fft_cpx* out) {
+void fftArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
   kiss_fft_cpx in[size/2];
   kiss_fft_cfg cfg;
   int i;
@@ -174,14 +174,14 @@ int BeatCalculator::detect_beat(char* s) {
     int sample_size = 2.2 * 4 * max_freq; //This is the sample length of our 5 second snapshot
 
     // Load mp3
-    unsigned char* sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
+    unsigned short* sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
     readMP3(s, sample);
     for (int i = 0; i < sample_size; i++) {
         printf("Element %i: %i\n", i, sample[i]);
     }
 
     // Step 2: Differentiate
-    unsigned char* differentiated_sample = (unsigned char*)malloc(sizeof(unsigned char) * sample_size);
+    unsigned short* differentiated_sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
     int Fs = 44100;
     differentiated_sample[0] = sample[0];
     for (int i = 1; i < sample_size - 1; i++) {
