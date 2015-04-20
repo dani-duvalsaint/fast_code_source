@@ -126,7 +126,9 @@ int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
         fftArray(l, sample_size, out);
         E[i] = 0;
         for (int k = 0; k < sample_size/2; k++) {
-            E[i] += (fft_array[k].r * out[k].r - fft_array[k].i * out[k].i);
+            int a = fft_array[k].r * out[k].r - fft_array[k].i * out[k].i;
+            int b = fft_array[k].r * out[k].i + fft_array[k].i * out[k].r;
+            E[i] += a * a + b * b;
         }
     }
 
