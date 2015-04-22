@@ -2,13 +2,13 @@
 #include <stdio.h>
 #include <mpg123.h>
 #include <kiss_fftr.h>
-#include "BeatCalculator.h"
+#include "BeatCalculatorParallel.h"
 
-BeatCalculator::BeatCalculator() {
+BeatCalculatorParallel::BeatCalculatorParallel() {
     printf("Initialized Beat Calculator\n");
 }
 
-BeatCalculator::~BeatCalculator() {
+BeatCalculatorParallel::~BeatCalculatorParallel() {
     printf("Terminated Beat Calculator\n");
 }
 
@@ -167,7 +167,7 @@ int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
  * Returns the BPM of the given mp3 file
  * @Params: s - the path to the desired mp3
  */
-int BeatCalculator::detect_beat(char* s) {
+int BeatCalculatorParallel::detect_beat(char* s) {
     // Step 1: Get a 5-second sample of our desired mp3
     // Assume the max frequency is 4096
     int max_freq = 4096;
@@ -209,7 +209,7 @@ int BeatCalculator::detect_beat(char* s) {
 }
 
 // Replicates the "control" part of the Matlab code
-int BeatCalculator::control() {
+int BeatCalculatorParallel::control() {
     // Step 1 : Get a 5-second sample of our desired mp3
 
     // Assume that we are at
