@@ -12,7 +12,7 @@ BeatCalculatorParallel::~BeatCalculatorParallel() {
     printf("Terminated Beat Calculator\n");
 }
 
-void cleanup(mpg123_handle* mh) {
+void BeatCalculatorParallel::cleanup(mpg123_handle* mh) {
     mpg123_close(mh);
     mpg123_delete(mh);
     mpg123_exit();
@@ -25,7 +25,7 @@ void cleanup(mpg123_handle* mh) {
  *          a - holds left ear data
  *          b - holds right ear data
  */
-int readMP3(char* song, unsigned short* sample) {
+int BeatCalculatorParallel::readMP3(char* song, unsigned short* sample) {
     mpg123_handle *mh = NULL;
     int err = MPG123_OK;
     int channels = 0, encoding = 0;
@@ -82,7 +82,7 @@ int readMP3(char* song, unsigned short* sample) {
     return 0;
 }
 
-void fftrArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
+void BeatCalculatorParallel::fftrArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
     kiss_fft_scalar in[size];
     kiss_fftr_cfg cfg;
 
@@ -100,7 +100,7 @@ void fftrArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
     free(cfg);
 }
 
-void fftArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
+void BeatCalculatorParallel::fftArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
   kiss_fft_cpx in[size/2];
   kiss_fft_cfg cfg;
   int i;
@@ -121,7 +121,7 @@ void fftArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
 
 }
 
-int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
+int BeatCalculatorParallel::combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
     unsigned short AmpMax = 65535;
     int E[30];
     // Iterate through all possible BPMs
