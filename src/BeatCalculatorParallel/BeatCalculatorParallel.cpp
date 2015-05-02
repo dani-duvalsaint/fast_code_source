@@ -162,12 +162,18 @@ int BeatCalculatorParallel::combfilter(kiss_fft_cpx* fft_array, int size, int sa
     return 60 + index * 5;
 }
 
+void cudaTest();
+int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out);
 
 /* detect_beat
  * Returns the BPM of the given mp3 file
  * @Params: s - the path to the desired mp3
  */
 int BeatCalculatorParallel::detect_beat(char* s) {
+
+    // Cuda test
+    cudaTest();
+
     // Step 1: Get a 5-second sample of our desired mp3
     // Assume the max frequency is 4096
     int max_freq = 4096;
@@ -176,9 +182,9 @@ int BeatCalculatorParallel::detect_beat(char* s) {
     // Load mp3
     unsigned short* sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
     readMP3(s, sample);
-    for (int i = 0; i < sample_size; i++) {
-        printf("Element %i: %i\n", i, sample[i]);
-    }
+    //for (int i = 0; i < sample_size; i++) {
+    //    printf("Element %i: %i\n", i, sample[i]);
+    //}
 
     // Step 2: Differentiate
     unsigned short* differentiated_sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
@@ -191,10 +197,15 @@ int BeatCalculatorParallel::detect_beat(char* s) {
 
     // Step 3: Compute the FFT
     kiss_fft_cpx out[sample_size/2];
+
+    printf("Cuda FFT start\n");
+    cudaFFT(sample, sample_size, out);
+    printf("CUDA FFT Finish\n");
+
     fftrArray(sample, sample_size, out);
 
-    for (int i = 0; i < sample_size / 2; i++)
-      printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);
+    //for (int i = 0; i < sample_size / 2; i++)
+    //  printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);
 
     printf("Combfilter performing...\n");
 
