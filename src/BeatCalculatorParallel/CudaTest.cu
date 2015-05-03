@@ -7,8 +7,16 @@
 
 __global__ void memAssign(int N, unsigned short* in, cufftReal* out) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < N) {
+        out[index] = in[index];
+        printf("CUDA: float: %f, short: %i\n", out[index], in[index]);
+    }
+}
+
+__global__ void printData(int N, cufftComplex* out) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < N) 
-        out[index] = (cufftReal)in[index];
+        printf("CUDA: Output FFT %f %f\n", out[index].x, out[index].y);
 }
 
 void cudaTest() {
@@ -29,22 +37,44 @@ int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out) {
     cudaMalloc(&deviceDataOut, sizeof(cufftReal) * (size/2 + 1));
     cudaMalloc(&deviceShortArray, sizeof(unsigned short) * size);
     hostDataOut = (cufftComplex*)malloc(sizeof(cufftComplex) * (size/2+1));
+    if (cudaGetLastError() != cudaSuccess) {
+        printf("Failed to allocate stuff on GPU\n");
+        return 0;
+    }
 
     // Copy memory over
-    cudaMemcpy(deviceShortArray, sample, size, cudaMemcpyHostToDevice);
+     if (cudaMemcpy(deviceShortArray, sample, size, cudaMemcpyHostToDevice) != cudaSuccess) {
+         printf("Failed to copy shorts over\n");
+         return 0;
+     }
 
     // Run a Kernel to convert to the cufftReal format
-    int threadsPerBlock = 32;
-    int blocks = size/threadsPerBlock + 1;
+    int threadsPerBlock = 512;
+    int blocks = (size + threadsPerBlock - 1)/threadsPerBlock;
     memAssign<<<blocks, threadsPerBlock>>>(size, deviceShortArray, deviceDataIn);
     cudaDeviceSynchronize();
 
     // Now run the fft
-    cufftPlan1d(&plan, size, CUFFT_R2C, 1);
-    cufftExecR2C(plan, deviceDataIn, deviceDataOut);
-    cudaDeviceSynchronize();
+    if (cufftPlan1d(&plan, size, CUFFT_R2C, 1) != CUFFT_SUCCESS) {
+        printf("CUFFT Error - plan creation failed\n");
+        return 0;
+    }
+    if (cufftExecR2C(plan, deviceDataIn, deviceDataOut) != CUFFT_SUCCESS) {
+        printf("CUFFT Error - execution of FFT failed\n");
+        return 0;
+    }
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        printf("Failed to sync\n");
+        return 0;
+    }
     // Get data back from GPU
-    cudaMemcpy(hostDataOut, deviceDataOut, size/2+1, cudaMemcpyDeviceToHost);
+    if (cudaMemcpy(hostDataOut, deviceDataOut, size/2+1, cudaMemcpyDeviceToHost) != cudaSuccess) {
+        printf("Failed to get memory back\n");
+    }
+
+    // Print out data 
+    printData<<<blocks, threadsPerBlock>>>(size/2+1, deviceDataOut);
+    cudaDeviceSynchronize();
 
     // Copy to out
     for (int i = 0; i < size/2 + 1; i++) {
