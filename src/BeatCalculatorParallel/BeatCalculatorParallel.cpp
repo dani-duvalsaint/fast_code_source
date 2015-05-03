@@ -168,12 +168,17 @@ int BeatCalculatorParallel::combfilter(kiss_fft_cpx* fft_array, int size, int sa
 // Virtual CUDA functions
 void cudaTest();
 
+void cudaTest();
+
 
 /* detect_beat
  * Returns the BPM of the given mp3 file
  * @Params: s - the path to the desired mp3
  */
 int BeatCalculatorParallel::detect_beat(char* s) {
+
+    cudaTestR();
+    return;
 
     // Cuda test
     cudaTest();

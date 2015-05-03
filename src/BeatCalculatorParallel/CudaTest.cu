@@ -1,11 +1,27 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
 #include <kiss_fftr.h>
 #include <cufft.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <driver_functions.h>
 
-__global__ void memAssign(int N, unsigned short* in, cufftReal* out) {
+#ifndef M_PI
+#define M_PI 3.14159265358979324
+#endif
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+  if (code != cudaSuccess) 
+  {
+    fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+  }
+}
+
+__global__ void memAssignShort(int N, unsigned short* in, cufftReal* out) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < N) {
         out[index] = in[index];
@@ -19,8 +35,144 @@ __global__ void printData(int N, cufftComplex* out) {
         printf("CUDA: Output FFT %f %f\n", out[index].x, out[index].y);
 }
 
+__global__ void memAssignFloat(int N, float* in, cufftReal* out) {
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index < N) 
+        out[index] = (cufftReal)in[index];
+}
+
+void cudaTestR() {
+    printf("Starting Test of CUDA FFT \n");
+    
+    int size = 16; //use small sample for testing
+    float *onesSample, *zerosSample, *sineSample;
+    cufftHandle plan;
+    cufftReal* fftDataIn;
+    cufftComplex* fftDataOut;
+    float* testArrayOnes;
+    float* testArrayZeros;
+    float* testArraySine;
+    float2* retArrayOnes;
+    float2* retArrayZeros;
+    float2* retArraySine;
+    int i;
+
+    printf("Mallocing \n");
+    // Malloc Variables 
+    gpuErrchk( cudaMalloc(&fftDataIn, sizeof(cufftReal) * size) );
+    gpuErrchk( cudaMalloc(&fftDataOut, sizeof(cufftReal) * (size/2 + 1)) );
+    gpuErrchk( cudaMalloc(&testArrayOnes, sizeof(float) * size) );
+    gpuErrchk( cudaMalloc(&testArrayZeros, sizeof(float) * size) );
+    gpuErrchk( cudaMalloc(&testArraySine, sizeof(float) * size) );
+    onesSample = malloc(size * sizeof(float));
+    zerosSample = malloc(size * sizeof(float));
+    sineSample = malloc(size * sizeof(float));
+    retArrayOnes = malloc((size/2 +1) * sizeof(float2));
+    retArrayZeros = malloc((size/2 +1) * sizeof(float2));
+    retArraySine = malloc((size/2 +1) * sizeof(float2));
+
+    //Set up tests
+    for (i = 0; i < size; i++) {
+      onesSample[i] = 1;
+      zerosSample[i] = 0;
+      sineSample[i] = sin(2 * M_PI * 4 * i / size);
+    }
+
+    printf("Memcpy \n");
+    // Copy memory over
+    gpuErrchk( cudaMemcpy(testArrayOnes, onesSample, size, cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMemcpy(testArrayZeros, zerosSample, size, cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMemcpy(testArraySine, sineSample, size, cudaMemcpyHostToDevice) );
+
+
+    //Testing wave of Ones
+    printf("Run Ones Test \n");
+
+    // Run a Kernel to convert to the cufftReal format
+    int threadsPerBlock = 32;
+    int blocks = size/threadsPerBlock + 1;
+    memAssignFloat<<<blocks, threadsPerBlock>>>(size, testArrayOnes, fftDataIn);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
+    
+    // Now run the fft
+    gpuErrchk( cufftPlan1d(&plan, size, CUFFT_R2C, 1) );
+    gpuErrchk( cufftExecR2C(plan, fftDataIn, fftDataOut) );
+
+    // Get data back from GPU
+    gpuErrchk( cudaMemcpy(retArrayOnes,fftDataOut, size/2 +1, cudaMemcpyDeviceToHost) );
+
+    //Testing wave of Zeros
+    printf("Run Zeros Test \n");
+    memAssignFloat<<<blocks, threadsPerBlock>>>(size, testArrayZeros, fftDataIn);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
+
+    gpuErrchk( cufftPlan1d(&plan, size, CUFFT_R2C, 1) );
+    gpuErrchk( cufftExecR2C(plan, fftDataIn, fftDataOut) );
+
+    gpuErrchk( cudaMemcpy(retArrayZeros,fftDataOut, size/2 +1, cudaMemcpyDeviceToHost) );
+   
+    //Testing sine wave 
+    printf("Run Sine Test \n");
+
+    memAssignFloat<<<blocks, threadsPerBlock>>>(size, testArraySine, fftDataIn);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
+
+    gpuErrchk( cufftPlan1d(&plan, size, CUFFT_R2C, 1) );
+    gpuErrchk( cufftExecR2C(plan, fftDataIn, fftDataOut) );
+
+    gpuErrchk( cudaMemcpy(retArraySine,fftDataOut, size/2 +1, cudaMemcpyDeviceToHost) );
+    
+    //Ones Data
+    printf("Ones Result\n");
+    for (i = 0; i < size; i++) {
+      printf(" in[%2zu] = %+f    ", i, onesSample[i]);
+      if (i < size / 2 + 1)
+        printf("out[%2zu] = %+f , %+f", i, retArrayOnes[i].x, retArrayOnes[i].y);
+      printf("\n");
+    }  
+    
+    //Zeros Data
+    printf("Ones Result\n");
+    for (i = 0; i < size; i++) {
+      printf(" in[%2zu] = %+f    ", i, zerosSample[i]);
+      if (i < size / 2 + 1)
+        printf("out[%2zu] = %+f , %+f", i, retArrayZeros[i].x, retArrayZeros[i].y);
+      printf("\n");
+    }  
+    
+    //Sine Data
+    printf("Ones Result\n");
+    for (i = 0; i < size; i++) {
+      printf(" in[%2zu] = %+f    ", i, sineSample[i]);
+      if (i < size / 2 + 1)
+        printf("out[%2zu] = %+f , %+f", i, retArraySine[i].x, retArraySine[i].y);
+      printf("\n");
+    } 
+ 
+    // Cleanup CUDA Side
+    cufftDestroy(plan);
+    cudaFree(fftDataIn);
+    cudaFree(fftDataOut);
+    cudaFree(testArrayOnes);
+    cudaFree(testArrayZeros);
+    cudaFree(testArraySine);
+    
+    //Free arrays
+    free(onesSample);
+    free(zerosSample);
+    free(sineSample);
+    free(retArrayOnes);
+    free(retArrayZeros);
+    free(retArraySine);
+
+}
+
 void cudaTest() {
-    printf("Inside Cuda file\n");
+  printf("Inside CUDA File\n");
+
 }
 
 int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out) {

@@ -2,7 +2,7 @@ FINAL_PROJECT_PATH = $(shell pwd)
 
 INCLUDES = -I$(FINAL_PROJECT_PATH)/include -I$(FINAL_PROJECT_PATH)/lib -I$(FINAL_PROJECT_PATH)/kiss_fft130 -I$(FINAL_PROJECT_PATH)/kiss_fft130/tools -I$(FINAL_PROJECT_PATH)/src/BeatCalculator -I$(FINAL_PROJECT_PATH)/src/BeatCalculatorParallel
 #### Handler stuff
-CU_FILES := saxpy.cu
+CU_FILES := CudaTest.cu
 CU_DEPS :=
 NVCC=nvcc
 NVCCFLAGS=-O3 -m64 $(INCLUDES)
