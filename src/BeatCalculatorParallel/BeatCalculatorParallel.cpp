@@ -162,6 +162,7 @@ int BeatCalculatorParallel::combfilter(kiss_fft_cpx* fft_array, int size, int sa
     return 60 + index * 5;
 }
 
+// Virtual CUDA functions
 void cudaTest();
 int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out);
 
@@ -196,13 +197,25 @@ int BeatCalculatorParallel::detect_beat(char* s) {
     differentiated_sample[sample_size - 1] = sample[sample_size-1];
 
     // Step 3: Compute the FFT
-    kiss_fft_cpx out[sample_size/2];
+    kiss_fft_cpx out[sample_size/2+1];
+    kiss_fft_cpx outCuda[sample_size/2+1];
 
     printf("Cuda FFT start\n");
-    cudaFFT(sample, sample_size, out);
+    cudaFFT(sample, sample_size, outCuda);
     printf("CUDA FFT Finish\n");
 
+    printf("Normal FFT Start\n");
     fftrArray(sample, sample_size, out);
+    printf("Normal FFT Finish\n");
+
+    printf("Checking for differences...\n");
+    for (int i = 0; i < sample_size/2+1; i++) {
+        if (outCuda[i].r != out[i].r || outCuda[i].i != out[i].i) {
+            printf("Difference at index %i\n", i);
+            printf("OutCuda: %f %f, Out: %f %f\n", outCuda[i].r, outCuda[i].i, out[i].r, out[i].i);
+            break;
+        }
+    }
 
     //for (int i = 0; i < sample_size / 2; i++)
     //  printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);

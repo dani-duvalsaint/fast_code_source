@@ -21,12 +21,14 @@ int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out) {
     cufftHandle plan;
     cufftReal* deviceDataIn;
     cufftComplex* deviceDataOut;
+    cufftComplex* hostDataOut;
     unsigned short* deviceShortArray;
 
     // Malloc Variables 
     cudaMalloc(&deviceDataIn, sizeof(cufftReal) * size);
     cudaMalloc(&deviceDataOut, sizeof(cufftReal) * (size/2 + 1));
     cudaMalloc(&deviceShortArray, sizeof(unsigned short) * size);
+    hostDataOut = (cufftComplex*)malloc(sizeof(cufftComplex) * (size/2+1));
 
     // Copy memory over
     cudaMemcpy(deviceShortArray, sample, size, cudaMemcpyHostToDevice);
@@ -35,13 +37,20 @@ int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out) {
     int threadsPerBlock = 32;
     int blocks = size/threadsPerBlock + 1;
     memAssign<<<blocks, threadsPerBlock>>>(size, deviceShortArray, deviceDataIn);
-    cudaThreadSynchronize();
+    cudaDeviceSynchronize();
 
     // Now run the fft
     cufftPlan1d(&plan, size, CUFFT_R2C, 1);
     cufftExecR2C(plan, deviceDataIn, deviceDataOut);
+    cudaDeviceSynchronize();
+    // Get data back from GPU
+    cudaMemcpy(hostDataOut, deviceDataOut, size/2+1, cudaMemcpyDeviceToHost);
 
-    // TODO: Get data back from GPU
+    // Copy to out
+    for (int i = 0; i < size/2 + 1; i++) {
+        out[i].r = hostDataOut[i].x;
+        out[i].i = hostDataOut[i].y;
+    }
 
     // Cleanup
     cufftDestroy(plan);
