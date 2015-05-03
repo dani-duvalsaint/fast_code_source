@@ -64,12 +64,12 @@ void cudaTestR() {
     gpuErrchk( cudaMalloc(&testArrayOnes, sizeof(float) * size) );
     gpuErrchk( cudaMalloc(&testArrayZeros, sizeof(float) * size) );
     gpuErrchk( cudaMalloc(&testArraySine, sizeof(float) * size) );
-    onesSample = malloc(size * sizeof(float));
-    zerosSample = malloc(size * sizeof(float));
-    sineSample = malloc(size * sizeof(float));
-    retArrayOnes = malloc((size/2 +1) * sizeof(float2));
-    retArrayZeros = malloc((size/2 +1) * sizeof(float2));
-    retArraySine = malloc((size/2 +1) * sizeof(float2));
+    onesSample = (float*)malloc(size * sizeof(float));
+    zerosSample = (float*)malloc(size * sizeof(float));
+    sineSample = (float*)malloc(size * sizeof(float));
+    retArrayOnes = (float2*)malloc((size/2 +1) * sizeof(float2));
+    retArrayZeros = (float2*)malloc((size/2 +1) * sizeof(float2));
+    retArraySine = (float2*)malloc((size/2 +1) * sizeof(float2));
 
     //Set up tests
     for (i = 0; i < size; i++) {
@@ -96,8 +96,8 @@ void cudaTestR() {
     gpuErrchk( cudaDeviceSynchronize() );
     
     // Now run the fft
-    gpuErrchk( cufftPlan1d(&plan, size, CUFFT_R2C, 1) );
-    gpuErrchk( cufftExecR2C(plan, fftDataIn, fftDataOut) );
+    cufftPlan1d(&plan, size, CUFFT_R2C, 1);
+    cufftExecR2C(plan, fftDataIn, fftDataOut);
 
     // Get data back from GPU
     gpuErrchk( cudaMemcpy(retArrayOnes,fftDataOut, size/2 +1, cudaMemcpyDeviceToHost) );
@@ -108,8 +108,8 @@ void cudaTestR() {
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 
-    gpuErrchk( cufftPlan1d(&plan, size, CUFFT_R2C, 1) );
-    gpuErrchk( cufftExecR2C(plan, fftDataIn, fftDataOut) );
+    cufftPlan1d(&plan, size, CUFFT_R2C, 1);
+    cufftExecR2C(plan, fftDataIn, fftDataOut);
 
     gpuErrchk( cudaMemcpy(retArrayZeros,fftDataOut, size/2 +1, cudaMemcpyDeviceToHost) );
    
@@ -120,8 +120,8 @@ void cudaTestR() {
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 
-    gpuErrchk( cufftPlan1d(&plan, size, CUFFT_R2C, 1) );
-    gpuErrchk( cufftExecR2C(plan, fftDataIn, fftDataOut) );
+    cufftPlan1d(&plan, size, CUFFT_R2C, 1);
+    cufftExecR2C(plan, fftDataIn, fftDataOut);
 
     gpuErrchk( cudaMemcpy(retArraySine,fftDataOut, size/2 +1, cudaMemcpyDeviceToHost) );
     
@@ -203,7 +203,7 @@ int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out) {
     // Run a Kernel to convert to the cufftReal format
     int threadsPerBlock = 512;
     int blocks = (size + threadsPerBlock - 1)/threadsPerBlock;
-    memAssign<<<blocks, threadsPerBlock>>>(size, deviceShortArray, deviceDataIn);
+    memAssignShort<<<blocks, threadsPerBlock>>>(size, deviceShortArray, deviceDataIn);
     cudaDeviceSynchronize();
 
     // Now run the fft

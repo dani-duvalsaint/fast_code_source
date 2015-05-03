@@ -166,7 +166,7 @@ int BeatCalculatorParallel::combfilter(kiss_fft_cpx* fft_array, int size, int sa
 }
 
 // Virtual CUDA functions
-void cudaTest();
+void cudaTestR();
 
 void cudaTest();
 
@@ -177,8 +177,8 @@ void cudaTest();
  */
 int BeatCalculatorParallel::detect_beat(char* s) {
 
-    cudaTestR();
-    return;
+    //cudaTestR();
+    //return 0;
 
     // Cuda test
     cudaTest();
