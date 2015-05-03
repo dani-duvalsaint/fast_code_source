@@ -9,7 +9,7 @@ __global__ void memAssign(int N, unsigned short* in, cufftReal* out) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < N) {
         out[index] = in[index];
-        printf("CUDA: float: %f, short: %i\n", out[index], in[index]);
+        //printf("CUDA: float: %f, short: %i\n", out[index], in[index]);
     }
 }
 
@@ -34,7 +34,7 @@ int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out) {
 
     // Malloc Variables 
     cudaMalloc(&deviceDataIn, sizeof(cufftReal) * size);
-    cudaMalloc(&deviceDataOut, sizeof(cufftReal) * (size/2 + 1));
+    cudaMalloc(&deviceDataOut, sizeof(cufftComplex) * (size/2 + 1));
     cudaMalloc(&deviceShortArray, sizeof(unsigned short) * size);
     hostDataOut = (cufftComplex*)malloc(sizeof(cufftComplex) * (size/2+1));
     if (cudaGetLastError() != cudaSuccess) {
@@ -42,8 +42,8 @@ int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out) {
         return 0;
     }
 
-    // Copy memory over
-     if (cudaMemcpy(deviceShortArray, sample, size, cudaMemcpyHostToDevice) != cudaSuccess) {
+       // Copy memory over
+     if (cudaMemcpy(deviceShortArray, sample, size * sizeof(unsigned short), cudaMemcpyHostToDevice) != cudaSuccess) {
          printf("Failed to copy shorts over\n");
          return 0;
      }
@@ -68,18 +68,19 @@ int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out) {
         return 0;
     }
     // Get data back from GPU
-    if (cudaMemcpy(hostDataOut, deviceDataOut, size/2+1, cudaMemcpyDeviceToHost) != cudaSuccess) {
+    if (cudaMemcpy(hostDataOut, deviceDataOut, (size/2+1) * sizeof(cufftComplex), cudaMemcpyDeviceToHost) != cudaSuccess) {
         printf("Failed to get memory back\n");
     }
 
     // Print out data 
-    printData<<<blocks, threadsPerBlock>>>(size/2+1, deviceDataOut);
+    //printData<<<blocks, threadsPerBlock>>>(size/2+1, deviceDataOut);
     cudaDeviceSynchronize();
 
     // Copy to out
     for (int i = 0; i < size/2 + 1; i++) {
         out[i].r = hostDataOut[i].x;
         out[i].i = hostDataOut[i].y;
+        //printf("Host: %f %f, Out: %f %f\n", hostDataOut[i].x, hostDataOut[i].y, out[i].r, out[i].i);
     }
 
     // Cleanup

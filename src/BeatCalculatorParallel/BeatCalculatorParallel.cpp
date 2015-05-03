@@ -121,12 +121,15 @@ void BeatCalculatorParallel::fftArray(unsigned short* sample, int size, kiss_fft
 
 }
 
+int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out);
+
 int BeatCalculatorParallel::combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
     unsigned short AmpMax = 65535;
     int E[30];
     // Iterate through all possible BPMs
     for (int i = 0; i < 30; i++) {
         int BPM = 60 + i * 5;
+        printf("Testing BPM %i\n", BPM);
         int Ti = 60 * 44100/BPM;
         unsigned short l[sample_size];
         for (int k = 0; k < sample_size; k+=2) {
@@ -141,7 +144,7 @@ int BeatCalculatorParallel::combfilter(kiss_fft_cpx* fft_array, int size, int sa
         }
         kiss_fft_cpx out[sample_size/2];
 
-        fftrArray(l, sample_size, out);
+        cudaFFT(l, sample_size, out);
         E[i] = 0;
         for (int k = 0; k < sample_size/2; k++) {
             int a = fft_array[k].r * out[k].r - fft_array[k].i * out[k].i;
@@ -164,7 +167,7 @@ int BeatCalculatorParallel::combfilter(kiss_fft_cpx* fft_array, int size, int sa
 
 // Virtual CUDA functions
 void cudaTest();
-int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out);
+
 
 /* detect_beat
  * Returns the BPM of the given mp3 file
@@ -183,9 +186,9 @@ int BeatCalculatorParallel::detect_beat(char* s) {
     // Load mp3
     unsigned short* sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
     readMP3(s, sample);
-    //for (int i = 0; i < sample_size; i++) {
-    //    printf("Element %i: %i\n", i, sample[i]);
-    //}
+    for (int i = 0; i < sample_size; i++) {
+        printf("Element %i: %i\n", i, sample[i]);
+    }
 
     // Step 2: Differentiate
     unsigned short* differentiated_sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
@@ -201,9 +204,9 @@ int BeatCalculatorParallel::detect_beat(char* s) {
     kiss_fft_cpx outCuda[sample_size/2+1];
 
     printf("Cuda FFT start\n");
-    cudaFFT(sample, sample_size, outCuda);
+    cudaFFT(sample, sample_size, out);
     printf("CUDA FFT Finish\n");
-
+/*
     printf("Normal FFT Start\n");
     fftrArray(sample, sample_size, out);
     printf("Normal FFT Finish\n");
@@ -215,7 +218,7 @@ int BeatCalculatorParallel::detect_beat(char* s) {
             printf("OutCuda: %f %f, Out: %f %f\n", outCuda[i].r, outCuda[i].i, out[i].r, out[i].i);
             break;
         }
-    }
+    }*/
 
     //for (int i = 0; i < sample_size / 2; i++)
     //  printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);
