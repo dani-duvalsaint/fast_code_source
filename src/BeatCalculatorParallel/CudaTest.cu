@@ -243,3 +243,85 @@ int cudaFFT(unsigned short* sample, int size, kiss_fft_cpx* out) {
 
     return 0;
 }
+
+
+int cudaCombfilterFFT(int BPM_init, int BPM_final, int size, kiss_fft_cpx* out) {
+
+    // Assign Variables
+    cufftHandle plan;
+    cufftReal* deviceDataIn, *hostDataIn;
+    cufftComplex* deviceDataOut;
+    cufftComplex* hostDataOut;
+
+
+    int N = (BPM_final - BPM_init)/5;
+    int AmpMax = 65535;
+     
+    // Malloc Variables 
+    cudaMalloc(&deviceDataIn, sizeof(cufftReal) * size * N);
+    cudaMalloc(&deviceDataOut, sizeof(cufftComplex) * (size/2 + 1) * N);
+
+    hostDataIn = (cufftReal*)malloc(sizeof(cufftReal) * size * N);
+    hostDataOut = (cufftComplex*)malloc(sizeof(cufftComplex) * (size/2+1) * N);
+
+    if (cudaGetLastError() != cudaSuccess) {
+        printf("Failed to allocate stuff on GPU\n");
+        return 0;
+    }
+
+    for(int i = 0; i < N; i++) {
+      int BPM = BPM_init + i*5;
+      int Ti = 60 * 44100/BPM;
+
+      for(int k = size*i; k < size*(i+1); k+=2) {
+        if (k % Ti == 0) {
+          hostDataIn[k] = AmpMax;
+          hostDataIn[k+1] = AmpMax;
+        }
+        else {
+          hostDataIn[k] = 0;
+          hostDataIn[k+1] = 0;
+        }
+      }
+    }
+
+    int n[1] = {size};
+
+    gpuErrchk( cudaMemcpy(deviceDataIn, hostDataIn, size * N * sizeof(cufftReal), cudaMemcpyHostToDevice) );
+
+    // Now run the fft
+    if (cufftPlanMany(&plan, 1, n, NULL, 1, size, NULL, 1, size, CUFFT_R2C, N) != CUFFT_SUCCESS) {
+        printf("CUFFT Error - plan creation failed\n");
+        return 0;
+    }
+    if (cufftExecR2C(plan, deviceDataIn, deviceDataOut) != CUFFT_SUCCESS) {
+        printf("CUFFT Error - execution of FFT failed\n");
+        return 0;
+    }
+    if (cudaDeviceSynchronize() != cudaSuccess) {
+        printf("Failed to sync\n");
+        return 0;
+    }
+    // Get data back from GPU
+    if (cudaMemcpy(hostDataOut, deviceDataOut, (size/2+1) * sizeof(cufftComplex) * N, cudaMemcpyDeviceToHost) != cudaSuccess) {
+        printf("Failed to get memory back\n");
+    }
+
+    // Print out data 
+    //printData<<<blocks, threadsPerBlock>>>(size/2+1, deviceDataOut);
+    cudaDeviceSynchronize();
+
+    // Copy to out
+    for (int i = 0; i < (size/2 + 1)*N; i++) {
+        out[i].r = hostDataOut[i].x;
+        out[i].i = hostDataOut[i].y;
+        //printf("Host: %f %f, Out: %f %f\n", hostDataOut[i].x, hostDataOut[i].y, out[i].r, out[i].i);
+    }
+
+    // Cleanup
+    cufftDestroy(plan);
+    cudaFree(deviceDataIn);
+    cudaFree(deviceDataOut);
+
+    return 0;
+}
