@@ -7,7 +7,7 @@ CU_DEPS :=
 NVCC=nvcc
 NVCCFLAGS=-O3 -m64 $(INCLUDES)
 OBJDIR=objs
-OBJS=$(OBJDIR)/kissfft.o $(OBJDIR)/kissfftr.o $(OBJDIR)/cuda.o $(OBJDIR)/beatcalculatorpar.o $(OBJDIR)/beatcalculator.o $(OBJDIR)/main.o
+OBJS=$(OBJDIR)/kissfft.o $(OBJDIR)/kissfftr.o $(OBJDIR)/cuda.o $(OBJDIR)/beatcalculatorcuda.o $(OBJDIR)/beatcalculatorpar.o $(OBJDIR)/beatcalculator.o $(OBJDIR)/main.o
 
 CXX = g++ -m64
 CXXFLAGS = -g $(INCLUDES)
@@ -49,6 +49,8 @@ $(OBJDIR)/kissfftr.o: kiss_fft130/tools/kiss_fftr.c
 $(OBJDIR)/beatcalculator.o: $(SRCDIR)/BeatCalculator/BeatCalculator.cpp
 	$(CXX) $< $(CXXFLAGS) -c -o $@
 
+$(OBJDIR)/beatcalculatorcuda.o: $(SRCDIR)/BeatCalculatorParallel/BeatCalculatorCuda.cu
+	$(NVCC) $< $(NVCCFLAGS) -c -o $@
 
 $(OBJDIR)/beatcalculatorpar.o: $(SRCDIR)/BeatCalculatorParallel/BeatCalculatorParallel.cpp
 	$(CXX) $< $(CXXFLAGS) -c -o $@
