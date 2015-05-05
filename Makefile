@@ -10,7 +10,7 @@ OBJDIR=objs
 OBJS=$(OBJDIR)/kissfft.o $(OBJDIR)/kissfftr.o $(OBJDIR)/cuda.o $(OBJDIR)/beatcalculatorcuda.o $(OBJDIR)/beatcalculatorpar.o $(OBJDIR)/beatcalculator.o $(OBJDIR)/main.o
 
 CXX = g++ -m64
-CXXFLAGS = -g $(INCLUDES)
+CXXFLAGS = -g -O3 -fopenmp $(INCLUDES)
 LIBFLAGS = -L$(FINAL_PROJECT_PATH)/lib -L/usr/local/cuda/lib64/ -lcufft -lcudart -lmpg123
 SRCDIR = $(FINAL_PROJECT_PATH)/src
 
