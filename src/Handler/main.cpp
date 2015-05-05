@@ -5,16 +5,26 @@
 
 int main() {
   printf("Only testing parallel version - check code for improvement\n");
-  //BeatCalculator *calculator = new BeatCalculator();
-  //int BPM = calculator->detect_beat("songs/headhunterz.mp3");
-  //delete calculator;
-  //float error = (float)(BPM - 155)/155;
-  //printf("Error (Single-threaded): %f\n", error);
+
+  // Test CPU Version
+  BeatCalculator *calculator = new BeatCalculator();
+  clock_t begin = clock();
+  int BPM = calculator->detect_beat("songs/headhunterz.mp3");
+  clock_t end = clock();
+  double elapsed_secs = double(end-begin)/CLOCKS_PER_SEC;
+  delete calculator;
+  float error = (float)(BPM - 155)/155;
+  printf("Error (CPU OpenMP): %f, Time: %f\n", error, elapsed_secs);
+
+  // Test GPU Version
   BeatCalculatorParallel *calculator_par = new BeatCalculatorParallel();
-  int BPM = calculator_par->detect_beat("songs/headhunterz.mp3");
+  begin = clock();
+  BPM = calculator_par->detect_beat("songs/headhunterz.mp3");
+  end = clock();
+  elapsed_secs = double(end-begin)/CLOCKS_PER_SEC;
   delete calculator_par;
-  float error = (float)(BPM-155)/155;
-  printf("Error (Single-threaded): %f\n", error);
+  error = (float)(BPM-155)/155;
+  printf("Error (GPU Cuda): %f, Time: %f\n", error, elapsed_secs);
 
   return 0;
 }
