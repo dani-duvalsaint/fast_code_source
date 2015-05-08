@@ -34,16 +34,8 @@ __global__ void differentiate_kernel(int size, unsigned short* array, cufftReal*
 //TODO: look up best way to reduce an array with CUDA
 //      Currently use first thread in each block to reduce the array corresponding to that block, then return size N array
 //      Once best found, make this function return single integer
-<<<<<<< HEAD
-__global__ void calculate_energy(cufftComplex* sample, cufftComplex* combs, int* tempEnergies, int * energies, int sample_size, int N) {
-    int combIdx = blockIdx.x * sample_size;
-||||||| merged common ancestors
-__global__ void calculate_energy(cufftComplex* sample, cufftComplex* combs, int* tempEnergies, int * energies, int sample_size, int N) {
-    int combIdx = blockIdx.x * blockDim.x;
-=======
 __global__ void calculate_energy(cufftComplex* sample, cufftComplex* combs, int* tempEnergies, int* energies, int sample_size, int N) {
     int combIdx = blockIdx.x * sample_size;
->>>>>>> some more changes
     int sampleIdx = threadIdx.x;
 
     if (sampleIdx < sample_size) {
@@ -163,6 +155,7 @@ int combFilterAnalysis(cufftComplex* sample, cufftComplex* combs, int out_size, 
     }
     
     gpuErrchk( cudaFree(deviceEnergies) );
+    free(hostEnergies);
 
     return 60 + index * 5;
 }
@@ -194,6 +187,8 @@ int BeatCalculatorParallel::cuda_detect_beat(char* s) {
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 
+    gpuErrchk( cudaFree(deviceSample) );
+    
     // Perform FFT
     cufftHandle plan1D;
     cufftComplex* deviceFFTOut;
