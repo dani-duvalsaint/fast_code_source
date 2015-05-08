@@ -156,6 +156,7 @@ int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
     int max = -1;
     int index = -1;
     for (int i = 0; i < 30; i++) {
+        printf("BPM: %d \t Energy: %d\n", 60 + i*5, E[i]);
         if (E[i] > max) {
             max = E[i];
             index = i;

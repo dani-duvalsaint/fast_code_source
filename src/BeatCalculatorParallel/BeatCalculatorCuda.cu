@@ -147,7 +147,8 @@ int combFilterAnalysis(cufftComplex* sample, cufftComplex* combs, int out_size, 
     //Calculate max of 
     int max = -1;
     int index = -1;
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < N; i++) {
+        printf("BPM: %d \t Energy: %d \n", 60 + i*5, hostEnergies[i]);
         if (hostEnergies[i] > max) {
             max = hostEnergies[i];
             index = i;
