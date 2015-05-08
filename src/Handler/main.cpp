@@ -17,7 +17,7 @@ int main() {
   double elapsed_secs = double(end-begin)/CLOCKS_PER_SEC;
   delete calculator;
   float error = (float)(BPM - 155)/155;
-  printf("Error (CPU OpenMP): %f, Time: %f\n", error, elapsed_secs);
+  printf("Error (CPU OpenMP): BPM: %d \t Error: %f \t Time: %f\n", BPM, error, elapsed_secs);
 
   // Test GPU Version
   BeatCalculatorParallel *calculator_par = new BeatCalculatorParallel();
@@ -28,7 +28,7 @@ int main() {
   elapsed_secs = double(end-begin)/CLOCKS_PER_SEC;
   delete calculator_par;
   error = (float)(BPM-155)/155;
-  printf("Error (GPU Cuda): %f, Time: %f\n", error, elapsed_secs);
+  printf("Error (GPU Cuda): BPM: %d \t Error: %f \t Time: %f\n", BPM, error, elapsed_secs);
 
   return 0;
 }
