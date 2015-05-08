@@ -24,10 +24,10 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 __global__ void differentiate_kernel(int size, unsigned short* array, cufftReal* differentiated) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index == 0 || index == size - 1) {
-        differentiated[index] = array[index];
+        differentiated[index] = (cufftReal)array[index];
     }
     else if (index < size) {
-        differentiated[index] = 44100 * (array[index+1]-array[index-1])/2;
+        differentiated[index] = 44100 * ((cufftReal)array[index+1]-(cufftReal)array[index-1])/2;
     }
 }
 
@@ -35,7 +35,7 @@ __global__ void differentiate_kernel(int size, unsigned short* array, cufftReal*
 //      Currently use first thread in each block to reduce the array corresponding to that block, then return size N array
 //      Once best found, make this function return single integer
 __global__ void calculate_energy(cufftComplex* sample, cufftComplex* combs, int* tempEnergies, int * energies, int sample_size, int N) {
-    int combIdx = blockIdx.x * blockDim.x;
+    int combIdx = blockIdx.x * sample_size;
     int sampleIdx = threadIdx.x;
 
     if (sampleIdx < sample_size) {
@@ -177,7 +177,8 @@ int BeatCalculatorParallel::cuda_detect_beat(char* s) {
     gpuErrchk( cudaMemcpy(deviceSample, sample, sample_size * sizeof(unsigned short), cudaMemcpyHostToDevice));
 
     differentiate_kernel<<<blocks, threadsPerBlock>>>(sample_size, deviceSample, deviceDifferentiatedSample);
-    gpuErrchk( cudaDeviceSynchronize());
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
 
     // Perform FFT
     cufftHandle plan1D;
