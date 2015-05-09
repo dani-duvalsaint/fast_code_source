@@ -82,9 +82,9 @@ int readMP3(char* song, float* sample) {
     // Calculate sample indices
     int start = buffer_size/2 - sample_size*2;
 
-    for(int i=start; i< sample_size + start; i++) {
-      printf("Buffer[%d]: \t %f \n", i, buffer[i]);
-    }
+    //for(int i=start; i< sample_size + start; i++) {
+    //  printf("Buffer[%d]: \t %f \n", i, buffer[i]);
+    //}
 
     memcpy(sample, buffer + start, sample_size * sizeof(float));
 
@@ -105,11 +105,12 @@ void fftrArray(float* sample, int size, kiss_fft_cpx* out) {
         printf("Not enough memory to allocate fftr!\n");
         exit(-1);
     }
-    #pragma omp parallel for
-    for (int i = 0; i < size; i++) {
-        in[i] = sample[i];
-    }
-    kiss_fftr(cfg, in, out);
+    //#pragma omp parallel for
+    //for (int i = 0; i < size; i++) {
+    //    in[i] = sample[i];
+    //}
+
+  kiss_fftr(cfg, (kiss_fft_scalar*)sample, out);
     free(cfg);
 }
 
@@ -135,14 +136,17 @@ void fftArray(unsigned int* sample, int size, kiss_fft_cpx* out) {
 }
 
 int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
-    unsigned short AmpMax = 65535;
+    int AmpMax = 2147483647;
     float E[30];
     // Iterate through all possible BPMs
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 0; i < 30; i++) {
         int BPM = 60 + i * 5;
         int Ti = 60 * 44100/BPM;
         float l[sample_size];
+        
+        printf("BPM: %d\n", BPM);
+        
         for (int k = 0; k < sample_size; k+=2) {
             //printf("k: %d \t Ti: %d \n",k, Ti);
             if ((k % Ti) == 0) {
@@ -154,14 +158,18 @@ int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
                 l[k+1] = 0;
             }
         }
-        kiss_fft_cpx out[sample_size/2];
+        
+        kiss_fft_cpx out[sample_size/2+1];
 
         fftrArray(l, sample_size, out);
         E[i] = 0;
-        for (int k = 0; k < sample_size/2; k++) {
+        for (int k = 0; k < sample_size/2+1; k++) {
+            printf("sample: %f %f \t %d BPM comb: %f %f \t ",fft_array[k].r, fft_array[k].i, BPM, out[k].r, out[k].i);   
             float a = fft_array[k].r * out[k].r - fft_array[k].i * out[k].i;
             float b = fft_array[k].r * out[k].i + fft_array[k].i * out[k].r;
+            printf("a: %f \t b: %f \t ", a ,b);
             E[i] += a * a + b * b;
+            printf("Added %f to E[%d]\n", a*a + b*b, i);
         }
     }
 
@@ -207,7 +215,7 @@ int BeatCalculator::detect_beat(char* s) {
     differentiated_sample[sample_size - 1] = sample[sample_size-1];
 
     // Step 3: Compute the FFT
-    kiss_fft_cpx out[sample_size/2];
+    kiss_fft_cpx out[sample_size/2+1];
     fftrArray(sample, sample_size, out);
 
     //for (int i = 0; i < sample_size / 2; i++)
@@ -215,7 +223,7 @@ int BeatCalculator::detect_beat(char* s) {
 
     printf("Combfilter performing...\n");
 
-    int BPM = combfilter(out, sample_size / 2, sample_size);
+    int BPM = combfilter(out, sample_size / 2 +1, sample_size);
 
     printf("Final BPM: %i\n", BPM);
 
