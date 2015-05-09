@@ -26,7 +26,7 @@ void cleanup(mpg123_handle* mh) {
  *          a - holds left ear data
  *          b - holds right ear data
  */
-int readMP3(char* song, unsigned short* sample) {
+int readMP3(char* song, float* sample) {
     mpg123_handle *mh = NULL;
     int err = MPG123_OK;
     int channels = 0, encoding = 0;
@@ -46,10 +46,15 @@ int readMP3(char* song, unsigned short* sample) {
         return -1;
     }
 
+    printf("Rate: %ld \t Channels: %d \t Encoding: %d \n",rate,channels, mpg123_encsize(encoding));
     if (encoding != MPG123_ENC_SIGNED_16 && encoding != MPG123_ENC_FLOAT_32) {
         cleanup(mh);
         fprintf(stderr, "Bad encoding! 0x%x!\n", encoding);
         return -1;
+    }
+    
+    if (encoding == MPG123_ENC_FLOAT_32) {
+      printf("Using 32-bit floats \n");
     }
 
     // Ensure format does not change
@@ -57,24 +62,31 @@ int readMP3(char* song, unsigned short* sample) {
     mpg123_format(mh, rate, channels, encoding);
 
     //Read mp3
+    mpg123_scan(mh);
     size_t buffer_size = mpg123_length(mh);
-    unsigned short* buffer = (unsigned short*)malloc(sizeof(unsigned short) * buffer_size);
+    float* buffer = (float*)malloc(sizeof(float) * buffer_size);
     size_t done = 0;
 
-    if (mpg123_read(mh, (unsigned char*)buffer, buffer_size, &done) != MPG123_OK) {
+    if (mpg123_read(mh, (unsigned char*)buffer, sizeof(float)*buffer_size, &done) != MPG123_OK) {
         cleanup(mh);
         fprintf(stderr, "Read went wrong\n");
         return -1;
     }
+
+    printf("Buffer Size: %d \t Actual number of bytes written: %d \n", buffer_size,done);
 
     // Extract 5 second sample
     int max_freq = 4096;
     int sample_size = 2.2*2*max_freq;
 
     // Calculate sample indices
-    int start = buffer_size/2 - sample_size/2;
+    int start = buffer_size/2 - sample_size*2;
 
-    memcpy(sample, buffer + start, sample_size * sizeof(unsigned short));
+    for(int i=start; i< sample_size + start; i++) {
+      printf("Buffer[%d]: \t %f \n", i, buffer[i]);
+    }
+
+    memcpy(sample, buffer + start, sample_size * sizeof(float));
 
     free(buffer);
 
@@ -83,7 +95,7 @@ int readMP3(char* song, unsigned short* sample) {
     return 0;
 }
 
-void fftrArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
+void fftrArray(float* sample, int size, kiss_fft_cpx* out) {
     kiss_fft_scalar in[size];
     kiss_fftr_cfg cfg;
 
@@ -101,7 +113,7 @@ void fftrArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
     free(cfg);
 }
 
-void fftArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
+void fftArray(unsigned int* sample, int size, kiss_fft_cpx* out) {
   kiss_fft_cpx in[size/2];
   kiss_fft_cfg cfg;
   int i;
@@ -124,17 +136,18 @@ void fftArray(unsigned short* sample, int size, kiss_fft_cpx* out) {
 
 int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
     unsigned short AmpMax = 65535;
-    int E[30];
+    float E[30];
     // Iterate through all possible BPMs
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int i = 0; i < 30; i++) {
         int BPM = 60 + i * 5;
         int Ti = 60 * 44100/BPM;
-        unsigned short l[sample_size];
+        float l[sample_size];
         for (int k = 0; k < sample_size; k+=2) {
+            //printf("k: %d \t Ti: %d \n",k, Ti);
             if ((k % Ti) == 0) {
-                l[k] = AmpMax;
-                l[k+1] = AmpMax;
+                l[k] = (float)AmpMax;
+                l[k+1] = (float)AmpMax;
             }
             else {
                 l[k] = 0;
@@ -146,8 +159,8 @@ int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
         fftrArray(l, sample_size, out);
         E[i] = 0;
         for (int k = 0; k < sample_size/2; k++) {
-            int a = fft_array[k].r * out[k].r - fft_array[k].i * out[k].i;
-            int b = fft_array[k].r * out[k].i + fft_array[k].i * out[k].r;
+            float a = fft_array[k].r * out[k].r - fft_array[k].i * out[k].i;
+            float b = fft_array[k].r * out[k].i + fft_array[k].i * out[k].r;
             E[i] += a * a + b * b;
         }
     }
@@ -177,14 +190,14 @@ int BeatCalculator::detect_beat(char* s) {
     int sample_size = 2.2 * 2 * max_freq; //This is the sample length of our 5 second snapshot
 
     // Load mp3
-    unsigned short* sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
+    float* sample = (float*)malloc(sizeof(float) * sample_size);
     readMP3(s, sample);
     //for (int i = 0; i < sample_size; i++) {
     //    printf("Element %i: %i\n", i, sample[i]);
     //}
 
     // Step 2: Differentiate
-    unsigned short* differentiated_sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
+    float* differentiated_sample = (float*)malloc(sizeof(float) * sample_size);
     int Fs = 44100;
     differentiated_sample[0] = sample[0];
     #pragma omp parallel for

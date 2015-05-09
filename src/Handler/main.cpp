@@ -11,9 +11,9 @@ int main() {
   clock_t begin = clock();
   int BPM;
   //Pick song to test
-  //BPM = calculator->detect_beat("songs/headhunterz.mp3");
+  BPM = calculator->detect_beat("songs/headhunterz-150bpm-clip.mp3");
   //BPM = calculator->detect_beat("songs/uz.mp3");
-  BPM = calculator->detect_beat("songs/120bpm.mp3");
+  //BPM = calculator->detect_beat("songs/120bpm.mp3");
   clock_t end = clock();
   double elapsed_secs = double(end-begin)/CLOCKS_PER_SEC;
   delete calculator;
@@ -23,9 +23,9 @@ int main() {
   // Test GPU Version
   BeatCalculatorParallel *calculator_par = new BeatCalculatorParallel();
   begin = clock();
-  //BPM = calculator_par->detect_beat("songs/headhunterz.mp3");
+  BPM = calculator_par->detect_beat("songs/headhunterz-150bpm-clip.mp3");
   //BPM = calculator->detect_beat("songs/uz.mp3");
-  BPM = calculator_par->detect_beat("songs/120bpm.mp3");
+  //BPM = calculator_par->detect_beat("songs/120bpm.mp3");
   end = clock();
   elapsed_secs = double(end-begin)/CLOCKS_PER_SEC;
   delete calculator_par;
