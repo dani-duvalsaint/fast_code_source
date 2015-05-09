@@ -62,15 +62,18 @@ int readMP3(char* song, float* sample) {
     mpg123_format(mh, rate, channels, encoding);
 
     //Read mp3
+    mpg123_scan(mh);
     size_t buffer_size = mpg123_length(mh);
     float* buffer = (float*)malloc(sizeof(float) * buffer_size);
     size_t done = 0;
 
-    if (mpg123_read(mh, (unsigned char*)buffer, buffer_size, &done) != MPG123_OK) {
+    if (mpg123_read(mh, (unsigned char*)buffer, sizeof(float)*buffer_size, &done) != MPG123_OK) {
         cleanup(mh);
         fprintf(stderr, "Read went wrong\n");
         return -1;
     }
+
+    printf("Buffer Size: %d \t Actual number of bytes written: %d \n", buffer_size,done);
 
     // Extract 5 second sample
     int max_freq = 4096;
@@ -78,6 +81,10 @@ int readMP3(char* song, float* sample) {
 
     // Calculate sample indices
     int start = buffer_size/2 - sample_size*2;
+
+    for(int i=start; i< sample_size + start; i++) {
+      printf("Buffer[%d]: \t %f \n", i, buffer[i]);
+    }
 
     memcpy(sample, buffer + start, sample_size * sizeof(float));
 
@@ -137,7 +144,7 @@ int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
         int Ti = 60 * 44100/BPM;
         float l[sample_size];
         for (int k = 0; k < sample_size; k+=2) {
-            printf("k: %d \t Ti: %d \n",k, Ti);
+            //printf("k: %d \t Ti: %d \n",k, Ti);
             if ((k % Ti) == 0) {
                 l[k] = (float)AmpMax;
                 l[k+1] = (float)AmpMax;
