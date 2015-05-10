@@ -131,14 +131,15 @@ void fftArray(unsigned int* sample, int size, kiss_fft_cpx* out) {
 
 }
 
-int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size) {
+int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size, int start, int fin, int step) {
     int AmpMax = 2147483647;
-    double E[50] = {0.0};
+    int energyCount = (fin - start)/step;
+    double E[energyCount];
     int count = 0;
     // Iterate through all possible BPMs
     //#pragma omp parallel for
-    for (int i = 0; i < 50; i++) {
-        int BPM = 60 + i * 3;
+    for (int i = 0; i < energyCount; i++) {
+        int BPM = start + i * step;
         int Ti = 60 * 44100/BPM;
         float l[sample_size];
         count = 0;
@@ -178,14 +179,14 @@ int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size) {
     //Calculate max of E[k]
     double max = -1;
     int index = -1;
-    for (int i = 0; i < 50; i++) {
-        printf("BPM: %d \t Energy: %f\n", 60 + i*3, E[i]);
+    for (int i = 0; i < energyCount; i++) {
+        printf("BPM: %d \t Energy: %f\n", start + i*step, E[i]);
         if (E[i] > max) {
             max = E[i];
             index = i;
         }
     }
-    return 60 + index * 3;
+    return start + index * step;
 }
 
 
@@ -225,7 +226,8 @@ int BeatCalculator::detect_beat(char* s) {
 
     printf("Combfilter performing...\n");
 
-    int BPM = combfilter(out, sample_size / 2 +1, sample_size);
+    int BPM = combfilter(out, sample_size / 2 +1, sample_size, 60, 210, 5);
+    BPM = combfilter(out, sample_size / 2 + 1, sample_size, BPM-5, BPM+5, 1);
 
     printf("Final BPM: %i\n", BPM);
 

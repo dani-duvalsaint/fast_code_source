@@ -19,7 +19,7 @@ int main() {
   delete calculator;
   float error = (float)(BPM - 155)/155;
   printf("Error (CPU OpenMP): BPM: %d \t Error: %f \t Time: %f\n", BPM, error, elapsed_secs);
-    */
+  */
   // Test GPU Version
   BeatCalculatorParallel *calculator_par = new BeatCalculatorParallel();
   clock_t begin = clock();

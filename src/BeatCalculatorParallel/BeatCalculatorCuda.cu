@@ -58,7 +58,7 @@ __global__ void calculate_energy(cufftComplex* sample, cufftComplex* combs, doub
 //TODO: write kernel function to do this
 void generateCombs(int BPM_init, int N, int size, int AmpMax, cufftReal* hostDataIn) {
     for(int i = 0; i < N; i++) {
-      int BPM = BPM_init + i*5;
+      int BPM = BPM_init + i;
       int Ti = 60 * 44100/BPM;
       int start = size * i; //compute offset for this comfilter
 
@@ -148,7 +148,7 @@ int combFilterAnalysis(cufftComplex* sample, cufftComplex* combs, int out_size, 
     double max = -1;
     int index = -1;
     for (int i = 0; i < N; i++) {
-        printf("BPM: %d \t Energy: %f \n", 60 + i*5, hostEnergies[i]);
+        //printf("BPM: %d \t Energy: %f \n", 60 + i*5, hostEnergies[i]);
         if (hostEnergies[i] > max) {
             max = hostEnergies[i];
             index = i;
@@ -158,7 +158,7 @@ int combFilterAnalysis(cufftComplex* sample, cufftComplex* combs, int out_size, 
     gpuErrchk( cudaFree(deviceEnergies) );
     free(hostEnergies);
 
-    return 60 + index * 5;
+    return 60 + index;
 }
 
 int BeatCalculatorParallel::cuda_detect_beat(char* s) {
@@ -213,7 +213,7 @@ int BeatCalculatorParallel::cuda_detect_beat(char* s) {
     cufftComplex* combFFTOut;
     int BPM_init = 60;
     int BPM_final = 210;
-    int N = (BPM_final - BPM_init)/5;
+    int N = (BPM_final - BPM_init);
     gpuErrchk( cudaMalloc(&combFFTOut, sizeof(cufftComplex) * out_size * N) );
     
     combFilterFFT(BPM_init, BPM_final, N, sample_size, combFFTOut);
