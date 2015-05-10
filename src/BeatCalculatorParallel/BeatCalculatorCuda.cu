@@ -47,7 +47,7 @@ __global__ void calculate_energy(cufftComplex* sample, cufftComplex* combs, doub
     __syncthreads();
 
     if (sampleIdx == 0) {
-      int energy = 0;
+      double energy = 0;
       for (int i=0; i < sample_size; i++) {
         energy += tempEnergies[combIdx+i];
       }
@@ -68,8 +68,8 @@ void generateCombs(int BPM_init, int N, int size, int AmpMax, cufftReal* hostDat
           hostDataIn[start+k+1] = AmpMax;
         }
         else {
-          hostDataIn[k] = 0;
-          hostDataIn[k+1] = 0;
+          hostDataIn[start+k] = 0;
+          hostDataIn[start+k+1] = 0;
         }
       }
     }
@@ -145,7 +145,7 @@ int combFilterAnalysis(cufftComplex* sample, cufftComplex* combs, int out_size, 
     gpuErrchk( cudaMemcpy(hostEnergies, deviceEnergies, sizeof(double) * N, cudaMemcpyDeviceToHost) );
 
     //Calculate max of 
-    int max = -1;
+    double max = -1;
     int index = -1;
     for (int i = 0; i < N; i++) {
         printf("BPM: %d \t Energy: %f \n", 60 + i*5, hostEnergies[i]);
