@@ -3,6 +3,7 @@
 #include <mpg123.h>
 #include "omp.h"
 #include <kiss_fftr.h>
+#include <cmath>
 #include "BeatCalculator.h"
 
 BeatCalculator::BeatCalculator() {
@@ -26,7 +27,7 @@ void cleanup(mpg123_handle* mh) {
  *          a - holds left ear data
  *          b - holds right ear data
  */
-int readMP3(char* song, float* sample) {
+int readMP3(char* song, float* sample, int sample_size) {
     mpg123_handle *mh = NULL;
     int err = MPG123_OK;
     int channels = 0, encoding = 0;
@@ -38,7 +39,7 @@ int readMP3(char* song, float* sample) {
         return -1;
     }
 
-    mpg123_param(mh, MPG123_ADD_FLAGS, MPG123_FORCE_FLOAT, 0);
+    mpg123_param(mh, MPG123_ADD_FLAGS, MPG123_FORCE_FLOAT | MPG123_MONO_MIX, 0);
     if (mpg123_open(mh, song) != MPG123_OK ||
             mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK) {
         fprintf(stderr, "Trouble with mpg123: %s\n", mpg123_strerror(mh));
@@ -75,12 +76,8 @@ int readMP3(char* song, float* sample) {
 
     printf("Buffer Size: %d \t Actual number of bytes written: %d \n", buffer_size,done);
 
-    // Extract 5 second sample
-    int max_freq = 4096;
-    int sample_size = 2.2*2*max_freq;
-
     // Calculate sample indices
-    int start = buffer_size/2 - sample_size*2;
+    int start = buffer_size/2 - sample_size/2;
 
     //for(int i=start; i< sample_size + start; i++) {
     //  printf("Buffer[%d]: \t %f \n", i, buffer[i]);
@@ -96,7 +93,6 @@ int readMP3(char* song, float* sample) {
 }
 
 void fftrArray(float* sample, int size, kiss_fft_cpx* out) {
-    kiss_fft_scalar in[size];
     kiss_fftr_cfg cfg;
 
     int i;
@@ -135,21 +131,22 @@ void fftArray(unsigned int* sample, int size, kiss_fft_cpx* out) {
 
 }
 
-int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
+int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size) {
     int AmpMax = 2147483647;
-    float E[30];
+    double E[50] = {0.0};
+    int count = 0;
     // Iterate through all possible BPMs
-    #pragma omp parallel for
-    for (int i = 0; i < 30; i++) {
-        int BPM = 60 + i * 5;
+    //#pragma omp parallel for
+    for (int i = 0; i < 50; i++) {
+        int BPM = 60 + i * 3;
         int Ti = 60 * 44100/BPM;
         float l[sample_size];
-        
-        printf("BPM: %d\n", BPM);
+        count = 0;
+        //printf("BPM: %d Sample Size: %d Ti: %d\n", BPM, sample_size, Ti);
         
         for (int k = 0; k < sample_size; k+=2) {
-            //printf("k: %d \t Ti: %d \n",k, Ti);
             if ((k % Ti) == 0) {
+                count++;
                 l[k] = (float)AmpMax;
                 l[k+1] = (float)AmpMax;
             }
@@ -158,32 +155,37 @@ int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size) {
                 l[k+1] = 0;
             }
         }
+        //printf("Number of peaks: %d \n", count);
         
         kiss_fft_cpx out[sample_size/2+1];
 
         fftrArray(l, sample_size, out);
-        E[i] = 0;
+        double sum = 0;
         for (int k = 0; k < sample_size/2+1; k++) {
-            printf("sample: %f %f \t %d BPM comb: %f %f \t ",fft_array[k].r, fft_array[k].i, BPM, out[k].r, out[k].i);   
+            //printf("sample: %f %f \t %d BPM comb: %f %f \t ",fft_array[k].r, fft_array[k].i, BPM, out[k].r, out[k].i);   
             float a = fft_array[k].r * out[k].r - fft_array[k].i * out[k].i;
             float b = fft_array[k].r * out[k].i + fft_array[k].i * out[k].r;
-            printf("a: %f \t b: %f \t ", a ,b);
-            E[i] += a * a + b * b;
-            printf("Added %f to E[%d]\n", a*a + b*b, i);
+            //printf("a: %f b: %f \t ", a ,b);
+            //int temp = (fft_array[k].r * out[k].r) - (fft_array[k].r * out[k].i) - (fft_array[k].i * out[k].r) - (fft_array[k].i * out[k].i);
+            double temp = std::sqrt(a*a + b*b);
+            sum += temp;
+            //printf("Added %f to E[%d], value of %f\n", temp, i, sum);
         }
+        //printf("E[%d]: %f\n", i, sum);
+        E[i] = sum;
     }
 
     //Calculate max of E[k]
-    int max = -1;
+    double max = -1;
     int index = -1;
-    for (int i = 0; i < 30; i++) {
-        printf("BPM: %d \t Energy: %d\n", 60 + i*5, E[i]);
+    for (int i = 0; i < 50; i++) {
+        printf("BPM: %d \t Energy: %f\n", 60 + i*3, E[i]);
         if (E[i] > max) {
             max = E[i];
             index = i;
         }
     }
-    return 60 + index * 5;
+    return 60 + index * 3;
 }
 
 
@@ -195,11 +197,11 @@ int BeatCalculator::detect_beat(char* s) {
     // Step 1: Get a 5-second sample of our desired mp3
     // Assume the max frequency is 4096
     int max_freq = 4096;
-    int sample_size = 2.2 * 2 * max_freq; //This is the sample length of our 5 second snapshot
+    int sample_size = 2.2 * 4 * max_freq; //This is the sample length of our 5 second snapshot
 
     // Load mp3
     float* sample = (float*)malloc(sizeof(float) * sample_size);
-    readMP3(s, sample);
+    readMP3(s, sample, sample_size);
     //for (int i = 0; i < sample_size; i++) {
     //    printf("Element %i: %i\n", i, sample[i]);
     //}
@@ -208,7 +210,7 @@ int BeatCalculator::detect_beat(char* s) {
     float* differentiated_sample = (float*)malloc(sizeof(float) * sample_size);
     int Fs = 44100;
     differentiated_sample[0] = sample[0];
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int i = 1; i < sample_size - 1; i++) {
         differentiated_sample[i] = Fs * (sample[i+1]-sample[i-1])/2; //TODO: Look here if this is messing up
     }
