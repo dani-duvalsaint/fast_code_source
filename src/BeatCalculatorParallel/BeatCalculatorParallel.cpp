@@ -25,7 +25,7 @@ void BeatCalculatorParallel::cleanup(mpg123_handle* mh) {
  *          a - holds left ear data
  *          b - holds right ear data
  */
-int BeatCalculatorParallel::readMP3(char* song, unsigned short* sample) {
+int BeatCalculatorParallel::readMP3(char* song, float* sample) {
     mpg123_handle *mh = NULL;
     int err = MPG123_OK;
     int channels = 0, encoding = 0;
@@ -37,7 +37,7 @@ int BeatCalculatorParallel::readMP3(char* song, unsigned short* sample) {
         return -1;
     }
 
-    mpg123_param(mh, MPG123_ADD_FLAGS, MPG123_FORCE_FLOAT, 0);
+    mpg123_param(mh, MPG123_ADD_FLAGS, MPG123_FORCE_FLOAT | MPG123_MONO_MIX, 0);
     if (mpg123_open(mh, song) != MPG123_OK ||
             mpg123_getformat(mh, &rate, &channels, &encoding) != MPG123_OK) {
         fprintf(stderr, "Trouble with mpg123: %s\n", mpg123_strerror(mh));
@@ -57,7 +57,7 @@ int BeatCalculatorParallel::readMP3(char* song, unsigned short* sample) {
 
     //Read mp3
     size_t buffer_size = mpg123_length(mh);
-    unsigned short* buffer = (unsigned short*)malloc(sizeof(unsigned short) * buffer_size);
+    float* buffer = (float*)malloc(sizeof(float) * buffer_size);
     size_t done = 0;
 
     if (mpg123_read(mh, (unsigned char*)buffer, buffer_size, &done) != MPG123_OK) {
@@ -73,7 +73,7 @@ int BeatCalculatorParallel::readMP3(char* song, unsigned short* sample) {
     // Calculate sample indices
     int start = buffer_size/2 - sample_size/2;
 
-    memcpy(sample, buffer + start, sample_size * sizeof(unsigned short));
+    memcpy(sample, buffer + start, sample_size * sizeof(float));
 
     free(buffer);
 

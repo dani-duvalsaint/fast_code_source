@@ -21,20 +21,20 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
     }
 }
 
-__global__ void differentiate_kernel(int size, unsigned short* array, cufftReal* differentiated) {
+__global__ void differentiate_kernel(int size, float* array, cufftReal* differentiated) {
     int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index == 0 || index == size - 1) {
-        differentiated[index] = (cufftReal)array[index];
+        differentiated[index] = array[index];
     }
     else if (index < size) {
-        differentiated[index] = 44100 * ((cufftReal)array[index+1]-(cufftReal)array[index-1])/2;
+        differentiated[index] = 44100 * (array[index+1]-array[index-1])/2;
     }
 }
 
 //TODO: look up best way to reduce an array with CUDA
 //      Currently use first thread in each block to reduce the array corresponding to that block, then return size N array
 //      Once best found, make this function return single integer
-__global__ void calculate_energy(cufftComplex* sample, cufftComplex* combs, int* tempEnergies, int* energies, int sample_size, int N) {
+__global__ void calculate_energy(cufftComplex* sample, cufftComplex* combs, double* tempEnergies, double* energies, int sample_size, int N) {
     int combIdx = blockIdx.x * sample_size;
     int sampleIdx = threadIdx.x;
 
@@ -82,7 +82,7 @@ void combFilterFFT(int BPM_init, int BPM_final, int N, int fft_input_size, cufft
     cufftReal* deviceDataIn, *hostDataIn;
 
 
-    int AmpMax = 65535;
+    int AmpMax = 2147483647;
      
     // Malloc Variables 
     gpuErrchk( cudaMalloc(&deviceDataIn, sizeof(cufftReal) * fft_input_size * N) );
@@ -124,11 +124,11 @@ int combFilterAnalysis(cufftComplex* sample, cufftComplex* combs, int out_size, 
     //Launch a kernel to calculate the instant energy at position $k$ in the filtered sample, for all k, for all N filters
 
     //Run Kernel to determine energies
-    int *tempEnergies, *deviceEnergies, *hostEnergies;
-    gpuErrchk( cudaMalloc(&tempEnergies, sizeof(int) * out_size * N) );
-    gpuErrchk( cudaMalloc(&deviceEnergies, sizeof(int) * N) );
+    double *tempEnergies, *deviceEnergies, *hostEnergies;
+    gpuErrchk( cudaMalloc(&tempEnergies, sizeof(double) * out_size * N) );
+    gpuErrchk( cudaMalloc(&deviceEnergies, sizeof(double) * N) );
 
-    hostEnergies = (int*)malloc(N * sizeof(int));
+    hostEnergies = (double*)malloc(N * sizeof(double));
 
     const int blocks = N; //want a block for each comb
 
@@ -142,13 +142,13 @@ int combFilterAnalysis(cufftComplex* sample, cufftComplex* combs, int out_size, 
     gpuErrchk( cudaFree(tempEnergies) );
     
     //Loop through final array to find the best one
-    gpuErrchk( cudaMemcpy(hostEnergies, deviceEnergies, sizeof(int) * N, cudaMemcpyDeviceToHost) );
+    gpuErrchk( cudaMemcpy(hostEnergies, deviceEnergies, sizeof(double) * N, cudaMemcpyDeviceToHost) );
 
     //Calculate max of 
     int max = -1;
     int index = -1;
     for (int i = 0; i < N; i++) {
-        printf("BPM: %d \t Energy: %d \n", 60 + i*5, hostEnergies[i]);
+        printf("BPM: %d \t Energy: %f \n", 60 + i*5, hostEnergies[i]);
         if (hostEnergies[i] > max) {
             max = hostEnergies[i];
             index = i;
@@ -168,17 +168,17 @@ int BeatCalculatorParallel::cuda_detect_beat(char* s) {
     int blocks = (sample_size + threadsPerBlock - 1)/threadsPerBlock;
 
     // Load mp3
-    unsigned short* sample = (unsigned short*)malloc(sizeof(unsigned short) * sample_size);
+    float* sample = (float*)malloc(sizeof(float) * sample_size);
     readMP3(s, sample);
 
     // Step 2: Differentiate
-    unsigned short* deviceSample;
+    float* deviceSample;
     cufftReal* deviceDifferentiatedSample;
 
-    gpuErrchk( cudaMalloc(&deviceSample, sizeof(unsigned short) * sample_size));
+    gpuErrchk( cudaMalloc(&deviceSample, sizeof(float) * sample_size));
     gpuErrchk( cudaMalloc(&deviceDifferentiatedSample, sizeof(cufftReal) * sample_size));
 
-    gpuErrchk( cudaMemcpy(deviceSample, sample, sample_size * sizeof(unsigned short), cudaMemcpyHostToDevice));
+    gpuErrchk( cudaMemcpy(deviceSample, sample, sample_size * sizeof(float), cudaMemcpyHostToDevice));
 
     //free sample array on host
     free(sample);

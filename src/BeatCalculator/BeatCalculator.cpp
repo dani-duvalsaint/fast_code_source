@@ -53,7 +53,7 @@ int readMP3(char* song, float* sample, int sample_size) {
         fprintf(stderr, "Bad encoding! 0x%x!\n", encoding);
         return -1;
     }
-    
+
     if (encoding == MPG123_ENC_FLOAT_32) {
       printf("Using 32-bit floats \n");
     }
@@ -143,7 +143,7 @@ int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size) {
         float l[sample_size];
         count = 0;
         //printf("BPM: %d Sample Size: %d Ti: %d\n", BPM, sample_size, Ti);
-        
+
         for (int k = 0; k < sample_size; k+=2) {
             if ((k % Ti) == 0) {
                 count++;
@@ -156,13 +156,13 @@ int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size) {
             }
         }
         //printf("Number of peaks: %d \n", count);
-        
+
         kiss_fft_cpx out[sample_size/2+1];
 
         fftrArray(l, sample_size, out);
         double sum = 0;
         for (int k = 0; k < sample_size/2+1; k++) {
-            //printf("sample: %f %f \t %d BPM comb: %f %f \t ",fft_array[k].r, fft_array[k].i, BPM, out[k].r, out[k].i);   
+            //printf("sample: %f %f \t %d BPM comb: %f %f \t ",fft_array[k].r, fft_array[k].i, BPM, out[k].r, out[k].i);
             float a = fft_array[k].r * out[k].r - fft_array[k].i * out[k].i;
             float b = fft_array[k].r * out[k].i + fft_array[k].i * out[k].r;
             //printf("a: %f b: %f \t ", a ,b);
@@ -218,7 +218,7 @@ int BeatCalculator::detect_beat(char* s) {
 
     // Step 3: Compute the FFT
     kiss_fft_cpx out[sample_size/2+1];
-    fftrArray(sample, sample_size, out);
+    fftrArray(differentiated_sample, sample_size, out);
 
     //for (int i = 0; i < sample_size / 2; i++)
     //  printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);
