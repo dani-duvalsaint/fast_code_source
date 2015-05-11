@@ -65,7 +65,7 @@ function output = timecomb(sig, acc, minbpm, maxbpm, bandlimits, maxfreq)
     
     % Print the progress
     
-    percent_done  = 100*(bpm-minbpm)/(maxbpm-minbpm)
+    percent_done  = 100*(bpm-minbpm)/(maxbpm-minbpm);
     
     % Set every nstep samples of the filter to one
     
