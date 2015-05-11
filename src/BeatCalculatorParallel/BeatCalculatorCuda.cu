@@ -147,8 +147,8 @@ int combFilterAnalysis(cufftComplex* sample, cufftComplex* combs, int out_size, 
     //Calculate max of 
     double max = -1;
     int index = -1;
-    for (int i = 0; i < N; i++) {
-        //printf("BPM: %d \t Energy: %f \n", 60 + i*5, hostEnergies[i]);
+    for (int i = 0; i < N-1; i++) {
+        //printf("BPM: %d \t Energy: %f \n", 60 + i, hostEnergies[i]);
         if (hostEnergies[i] > max) {
             max = hostEnergies[i];
             index = i;
@@ -161,15 +161,14 @@ int combFilterAnalysis(cufftComplex* sample, cufftComplex* combs, int out_size, 
     return 60 + index;
 }
 
-int BeatCalculatorParallel::cuda_detect_beat(char* s) {
-    int max_freq = 4096;
-    int sample_size = 2.2 * 2 * max_freq;
+int BeatCalculatorParallel::cuda_detect_beat(char* s, int sample_size) {
+    int max_freq = sample_size/4.4;
     int threadsPerBlock = 512;
     int blocks = (sample_size + threadsPerBlock - 1)/threadsPerBlock;
 
     // Load mp3
     float* sample = (float*)malloc(sizeof(float) * sample_size);
-    readMP3(s, sample);
+    readMP3(s, sample, sample_size);
 
     // Step 2: Differentiate
     float* deviceSample;

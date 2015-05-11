@@ -15,14 +15,14 @@ class BeatCalculatorParallel {
         int filterbank();
         int diffrect();
         void cleanup(mpg123_handle* mh);
-        int readMP3(char* song, float* sample);
+        int readMP3(char* song, float* sample, int sample_size);
         void fftrArray(unsigned short* sample, int size, kiss_fft_cpx* out);
         void fftArray(unsigned short* sample, int size, kiss_fft_cpx* out);
         int combfilter(kiss_fft_cpx* fft_array, int size, int sample_size);
-        int cuda_detect_beat(char* s);
+        int cuda_detect_beat(char* s, int sample_size);
     public:
         BeatCalculatorParallel();
-        int detect_beat(char* s);
+        int detect_beat(char* s, int sample_size);
         ~BeatCalculatorParallel();
 };
 

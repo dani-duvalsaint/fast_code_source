@@ -10,7 +10,7 @@ class BeatCalculator {
         int diffrect();
     public:
         BeatCalculator();
-        int detect_beat(char* s);
+        int detect_beat(char* s, int sample_size);
         ~BeatCalculator();
 };
 

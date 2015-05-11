@@ -3,12 +3,12 @@
 #include <BeatCalculator.h>
 #include <BeatCalculatorParallel.h>
 
-int main() {
+int main(int argc, char* argv[]) {
   // Test CPU Version
   BeatCalculator *calculator = new BeatCalculator();
   int BPM;
   //Pick song to test
-  BPM = calculator->detect_beat("songs/headhunterz-150bpm-clip.mp3");
+  BPM = calculator->detect_beat("songs/headhunterz-150bpm-clip.mp3", atoi(argv[1]));
 
 
   delete calculator;

@@ -194,12 +194,11 @@ int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size, int start, i
  * Returns the BPM of the given mp3 file
  * @Params: s - the path to the desired mp3
  */
-int BeatCalculator::detect_beat(char* s) {
+int BeatCalculator::detect_beat(char* s, int sample_size) {
     // Step 1: Get a 5-second sample of our desired mp3
     // Assume the max frequency is 4096
-    int max_freq = 4096;
-    int sample_size = 2.2 * 4 * max_freq; //This is the sample length of our 5 second snapshot
 
+    int max_freq = sample_size/4.4;
     // Load mp3
     float* sample = (float*)malloc(sizeof(float) * sample_size);
     readMP3(s, sample, sample_size);

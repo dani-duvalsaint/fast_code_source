@@ -25,7 +25,7 @@ void BeatCalculatorParallel::cleanup(mpg123_handle* mh) {
  *          a - holds left ear data
  *          b - holds right ear data
  */
-int BeatCalculatorParallel::readMP3(char* song, float* sample) {
+int BeatCalculatorParallel::readMP3(char* song, float* sample, int sample_size) {
     mpg123_handle *mh = NULL;
     int err = MPG123_OK;
     int channels = 0, encoding = 0;
@@ -67,8 +67,7 @@ int BeatCalculatorParallel::readMP3(char* song, float* sample) {
     }
 
     // Extract 5 second sample
-    int max_freq = 4096;
-    int sample_size = 2.2*2*max_freq;
+    int max_freq = sample_size/4.4;
 
     // Calculate sample indices
     int start = buffer_size/2 - sample_size/2;
@@ -88,10 +87,10 @@ int cuda_detect_beat(char* s);
  * Returns the BPM of the given mp3 file
  * @Params: s - the path to the desired mp3
  */
-int BeatCalculatorParallel::detect_beat(char* s) {
+int BeatCalculatorParallel::detect_beat(char* s, int sample_size) {
 
     printf("All CUDA Version\n");
-    int ret = cuda_detect_beat(s);
+    int ret = cuda_detect_beat(s, sample_size);
     return ret;
 
 }
