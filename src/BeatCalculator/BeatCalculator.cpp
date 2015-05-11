@@ -137,7 +137,7 @@ int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size, int start, i
     double E[energyCount];
     int count = 0;
     // Iterate through all possible BPMs
-    #pragma omp parallel for
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < energyCount; i++) {
         int BPM = start + i * step;
         int Ti = 60 * 44100/BPM;
@@ -167,7 +167,6 @@ int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size, int start, i
             float a = fft_array[k].r * out[k].r - fft_array[k].i * out[k].i;
             float b = fft_array[k].r * out[k].i + fft_array[k].i * out[k].r;
             //printf("a: %f b: %f \t ", a ,b);
-            //int temp = (fft_array[k].r * out[k].r) - (fft_array[k].r * out[k].i) - (fft_array[k].i * out[k].r) - (fft_array[k].i * out[k].i);
             double temp = std::sqrt(a*a + b*b);
             sum += temp;
             //printf("Added %f to E[%d], value of %f\n", temp, i, sum);
@@ -177,12 +176,13 @@ int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size, int start, i
     }
 
     //Calculate max of E[k]
-    double max = -1;
+    double max_val = -1;
     int index = -1;
+    //#pragma omp parallel for reduction(max:max_val)
     for (int i = 0; i < energyCount; i++) {
         //printf("BPM: %d \t Energy: %f\n", start + i*step, E[i]);
-        if (E[i] > max) {
-            max = E[i];
+        if (E[i] > max_val) {
+            max_val = E[i];
             index = i;
         }
     }
@@ -211,7 +211,7 @@ int BeatCalculator::detect_beat(char* s) {
     float* differentiated_sample = (float*)malloc(sizeof(float) * sample_size);
     int Fs = 44100;
     differentiated_sample[0] = sample[0];
-    #pragma omp parallel for
+    #pragma omp parallel for schedule (dynamic)
     for (int i = 1; i < sample_size - 1; i++) {
         differentiated_sample[i] = Fs * (sample[i+1]-sample[i-1])/2; //TODO: Look here if this is messing up
     }
