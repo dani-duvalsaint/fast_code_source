@@ -55,7 +55,7 @@ int readMP3(char* song, float* sample, int sample_size) {
     }
 
     if (encoding == MPG123_ENC_FLOAT_32) {
-      printf("Using 32-bit floats \n");
+      //printf("Using 32-bit floats \n");
     }
 
     // Ensure format does not change
@@ -137,7 +137,7 @@ int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size, int start, i
     double E[energyCount];
     int count = 0;
     // Iterate through all possible BPMs
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 0; i < energyCount; i++) {
         int BPM = start + i * step;
         int Ti = 60 * 44100/BPM;
@@ -180,7 +180,7 @@ int combfilter(kiss_fft_cpx fft_array[], int size, int sample_size, int start, i
     double max = -1;
     int index = -1;
     for (int i = 0; i < energyCount; i++) {
-        printf("BPM: %d \t Energy: %f\n", start + i*step, E[i]);
+        //printf("BPM: %d \t Energy: %f\n", start + i*step, E[i]);
         if (E[i] > max) {
             max = E[i];
             index = i;
@@ -211,7 +211,7 @@ int BeatCalculator::detect_beat(char* s) {
     float* differentiated_sample = (float*)malloc(sizeof(float) * sample_size);
     int Fs = 44100;
     differentiated_sample[0] = sample[0];
-    //#pragma omp parallel for
+    #pragma omp parallel for
     for (int i = 1; i < sample_size - 1; i++) {
         differentiated_sample[i] = Fs * (sample[i+1]-sample[i-1])/2; //TODO: Look here if this is messing up
     }
@@ -224,12 +224,12 @@ int BeatCalculator::detect_beat(char* s) {
     //for (int i = 0; i < sample_size / 2; i++)
     //  printf("out[%2zu] = %+f , %+f\n", i, out[i].r, out[i].i);
 
-    printf("Combfilter performing...\n");
+    //printf("Combfilter performing...\n");
 
     int BPM = combfilter(out, sample_size / 2 +1, sample_size, 60, 210, 5);
     BPM = combfilter(out, sample_size / 2 + 1, sample_size, BPM-5, BPM+5, 1);
 
-    printf("Final BPM: %i\n", BPM);
+    //printf("Final BPM: %i\n", BPM);
 
     // Step 4: Generate Sub-band array values
     free(sample);

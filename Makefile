@@ -7,7 +7,7 @@ CU_DEPS :=
 NVCC=nvcc
 NVCCFLAGS=-O3 -m64 $(INCLUDES)
 OBJDIR=objs
-OBJS=$(OBJDIR)/kissfft.o $(OBJDIR)/kissfftr.o $(OBJDIR)/cuda.o $(OBJDIR)/beatcalculatorcuda.o $(OBJDIR)/beatcalculatorpar.o $(OBJDIR)/beatcalculator.o $(OBJDIR)/main.o
+OBJS=$(OBJDIR)/kissfft.o $(OBJDIR)/kissfftr.o $(OBJDIR)/cuda.o $(OBJDIR)/beatcalculatorcuda.o $(OBJDIR)/beatcalculatorpar.o $(OBJDIR)/beatcalculator.o 
 
 CXX = g++ -m64
 CXXFLAGS = -g -O3 -fopenmp $(INCLUDES)
@@ -15,13 +15,14 @@ LIBFLAGS = -L$(FINAL_PROJECT_PATH)/lib -L/usr/local/cuda/lib64/ -lcufft -lcudart
 SRCDIR = $(FINAL_PROJECT_PATH)/src
 
 EXECUTABLE = calculatebeat
+EXECUTABLE2 = calculatebeatpar
 
 #Suffix Rules
 .SUFFIXES: .cc
 
 #Files 
 
-default : $(EXECUTABLE)
+default : $(EXECUTABLE) $(EXECUTABLE2)
 
 all : fft_test_real fft_test_complex mp3_test handler
 
@@ -34,9 +35,11 @@ dirs:
 clean:
 	rm -rf $(OBJDIR) *.ppm *~ $(EXECUTABLE)
 
-$(EXECUTABLE): dirs $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LIBFLAGS)
+$(EXECUTABLE): dirs $(OBJS) $(OBJDIR)/main.o
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(OBJDIR)/main.o $(LIBFLAGS)
 
+$(EXECUTABLE2): dirs $(OBJS) $(OBJDIR)/mainpar.o
+	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(OBJDIR)/mainpar.o $(LIBFLAGS)
 
 $(OBJDIR)/kissfft.o: kiss_fft130/kiss_fft.c
 	$(CXX) $< $(CXXFLAGS) -c -o $@
@@ -57,6 +60,10 @@ $(OBJDIR)/beatcalculatorpar.o: $(SRCDIR)/BeatCalculatorParallel/BeatCalculatorPa
 
 
 $(OBJDIR)/main.o: $(SRCDIR)/Handler/main.cpp
+	$(CXX) $< $(CXXFLAGS) -c -o $@
+
+
+$(OBJDIR)/mainpar.o: $(SRCDIR)/Handler/mainpar.cpp
 	$(CXX) $< $(CXXFLAGS) -c -o $@
 
 
